@@ -10,8 +10,9 @@ Everything runs locally in the browser. There is no server, no account and no in
 | --- | --- |
 | `index.html` | The whole app: one self-contained page |
 | `microbit-RC-Telemetry-Logger.hex` | micro:bit V2 logger program (also downloadable from the app header) |
-| `MIVD_Simulated_Run_1_Stock.csv` | Simulated practice run: stock setup |
-| `MIVD_Simulated_Run_2_Modified.csv` | Simulated practice run: modified setup |
+| `MIVD_Simulated_Run_1_Stock.csv` | Simulated practice run: 3 laps of a small oval on stock tires |
+| `MIVD_Simulated_Run_2_Modified.csv` | Simulated practice run: the same course with grippier tires |
+| `tools/generate_sample_runs.py` | Physics simulation that produces the two practice runs |
 | `square-one-logo-transparent.png` | Logo |
 
 ## Getting started
@@ -37,6 +38,10 @@ Plug the car's micro:bit into the computer and open the **MICROBIT** drive, then
 - click **Import CSV files** and pick the file.
 
 Required columns are `time_ms`, `ax_mg`, `ay_mg` and `az_mg`. When present, the app also uses `run`, `forward_ms2`, `lateral_ms2`, `pitch_deg`, `roll_deg`, `vib_rms_mg`, `peak_g` and `speed_est_mph`. One file can hold several runs.
+
+### Practice data
+
+The two simulated runs come from `tools/generate_sample_runs.py`, a physics simulation of an RC car on an oval with 12 m straights and 3 m radius turns. It models tire grip, motor and braking limits, body lean, vibration and a floor seam. The micro:bit is simulated at 100 Hz and averaged into 10 rows per second in the logger's format. With grippier tires the car corners harder and laps about 9% faster (about 7.9 s vs 8.7 s per lap). Run `python3 tools/generate_sample_runs.py` to regenerate them.
 
 ## Workflow
 
