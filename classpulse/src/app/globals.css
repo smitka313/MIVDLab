@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ClassPulse design tokens: navy / slate / white with a restrained teal accent. */
+:root {
+  --background: oklch(0.985 0.003 247);
+  --foreground: oklch(0.21 0.034 264);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.034 264);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.034 264);
+  --primary: oklch(0.29 0.06 260); /* navy */
+  --primary-foreground: oklch(0.985 0.003 247);
+  --secondary: oklch(0.955 0.008 255);
+  --secondary-foreground: oklch(0.27 0.04 260);
+  --muted: oklch(0.955 0.008 255);
+  --muted-foreground: oklch(0.47 0.03 257);
+  --accent: oklch(0.95 0.03 190);
+  --accent-foreground: oklch(0.35 0.07 195);
+  --brand: oklch(0.55 0.1 192); /* teal */
+  --brand-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.91 0.01 255);
+  --input: oklch(0.88 0.012 255);
+  --ring: oklch(0.55 0.1 192);
+  --sidebar: oklch(0.22 0.045 262);
+  --sidebar-foreground: oklch(0.9 0.015 255);
+  --sidebar-muted: oklch(0.7 0.03 257);
+  --sidebar-accent: oklch(0.29 0.05 260);
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: oklch(0.17 0.025 264);
+  --foreground: oklch(0.94 0.008 255);
+  --card: oklch(0.21 0.03 264);
+  --card-foreground: oklch(0.94 0.008 255);
+  --popover: oklch(0.21 0.03 264);
+  --popover-foreground: oklch(0.94 0.008 255);
+  --primary: oklch(0.86 0.04 230);
+  --primary-foreground: oklch(0.2 0.04 262);
+  --secondary: oklch(0.27 0.03 262);
+  --secondary-foreground: oklch(0.92 0.01 255);
+  --muted: oklch(0.26 0.03 262);
+  --muted-foreground: oklch(0.72 0.025 257);
+  --accent: oklch(0.3 0.05 200);
+  --accent-foreground: oklch(0.88 0.06 190);
+  --brand: oklch(0.7 0.11 190);
+  --brand-foreground: oklch(0.18 0.03 260);
+  --destructive: oklch(0.65 0.19 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.3 0.03 262);
+  --input: oklch(0.34 0.03 262);
+  --ring: oklch(0.7 0.11 190);
+  --sidebar: oklch(0.14 0.025 264);
+  --sidebar-foreground: oklch(0.9 0.015 255);
+  --sidebar-muted: oklch(0.66 0.03 257);
+  --sidebar-accent: oklch(0.24 0.035 262);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Printing: hide app chrome, keep content legible on paper. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .print-full {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  .print-break {
+    break-before: page;
+  }
+  .card-print {
+    box-shadow: none !important;
+    border-color: #ccc !important;
+    break-inside: avoid;
+  }
+}
