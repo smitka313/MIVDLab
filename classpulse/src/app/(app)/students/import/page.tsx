@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { parseCSV, toCSV, type ParsedCSV } from "@/lib/csv";
-import { buildImportRows, FIELD_LABELS, guessMapping, mappingProblem, summarize, type ImportField, type ImportRow, type Mapping } from "@/features/students/import-logic";
+import { buildImportRows, detectSource, FIELD_LABELS, guessMapping, mappingProblem, summarize, type ImportField, type ImportRow, type Mapping } from "@/features/students/import-logic";
 import { classLabel, sortClasses } from "@/lib/hooks";
 import { cn, downloadFile, toISODate } from "@/lib/utils";
 import { friendlyError } from "@/lib/data/adapter";
@@ -203,6 +203,18 @@ function ImportWizard() {
               ) : null}
             </CardContent>
           </Card>
+          <div className="grid content-start gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>From Schoology</CardTitle>
+              <CardDescription>Use a CSV your school&apos;s Schoology gives you — for example a course member list or the course gradebook export.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-2 text-sm text-muted-foreground">
+              <p>ClassPulse recognizes Schoology&apos;s column names (Name First, Name Last, Unique User ID / School UID, Grad Year) and works out the grade from the graduation year.</p>
+              <p>Only names, IDs and grade level are imported. Gradebook scores and summary rows such as &ldquo;Points Possible&rdquo; are skipped.</p>
+              <p>Import one course at a time, choosing the matching ClassPulse class on the review step.</p>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle>Template</CardTitle>
@@ -215,6 +227,7 @@ function ImportWizard() {
               <p className="mt-3 text-xs text-muted-foreground">Only names are required. Do not include demographic, disability or medical information.</p>
             </CardContent>
           </Card>
+          </div>
         </div>
       )}
 
@@ -224,6 +237,9 @@ function ImportWizard() {
             <CardTitle>Match columns</CardTitle>
             <CardDescription>
               {parsed.rows.length} rows found in {fileName}. We guessed the matches below — adjust if needed.
+              {detectSource(parsed.headers) === "schoology" && (
+                <span className="mt-1 block font-medium text-brand-ink">Looks like a Schoology export: names, Unique User ID and Grad Year were matched. Other columns (such as grades) are ignored.</span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">

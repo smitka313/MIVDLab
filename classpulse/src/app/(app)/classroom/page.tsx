@@ -4,7 +4,7 @@ import { classHref } from "@/lib/paths";
 
 import * as React from "react";
 import Link from "next/link";
-import { Archive, ArchiveRestore, Clock, MapPin, MoreHorizontal, Pencil, Plus, Presentation, Trash2, Users } from "lucide-react";
+import { FileText, Archive, ArchiveRestore, Clock, MapPin, MoreHorizontal, Pencil, Plus, Presentation, Trash2, Users } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { useAction, useRows, useStore, useTables } from "@/components/providers/data-provider";
 import { Button } from "@/components/ui/button";
@@ -63,9 +63,16 @@ export default function ClassroomPage() {
         title="Classroom"
         description="Your class periods. Open a class for the live seating chart, roster and layouts."
         actions={
-          <Button onClick={() => setEditing("new")}>
-            <Plus /> New class
-          </Button>
+          <>
+            <Button asChild variant="outline">
+              <Link href="/classroom/sub-packet">
+                <FileText /> Substitute packet
+              </Link>
+            </Button>
+            <Button onClick={() => setEditing("new")}>
+              <Plus /> New class
+            </Button>
+          </>
         }
       />
       {status.error ? (

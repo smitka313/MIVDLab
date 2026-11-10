@@ -75,7 +75,7 @@ export function ClassForm({ existing, onDone }: { existing?: ClassSection; onDon
     };
     const saved = existing
       ? await run(() => store.update("classes", existing.id, row), { success: "Class updated" })
-      : await run(() => store.insertOne("classes", { ...row, school_id: null, default_layout_id: null, archived_at: null }), { success: (c) => `Created ${c.course_name}` });
+      : await run(() => store.insertOne("classes", { ...row, school_id: null, default_layout_id: null, archived_at: null, sub_notes: null }), { success: (c) => `Created ${c.course_name}` });
     if (saved) onDone(saved);
   });
 

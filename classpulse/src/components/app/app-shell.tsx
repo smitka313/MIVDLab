@@ -34,6 +34,8 @@ import { cn } from "@/lib/utils";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { useInstallApp } from "@/components/providers/pwa";
 import { BackupReminder } from "@/features/backup/backup-reminder";
+import { CommandPaletteProvider, useCommandPalette } from "@/features/search/command-palette";
+import { Search } from "lucide-react";
 import { MonitorDown } from "lucide-react";
 
 export const NAV = [
@@ -115,13 +117,14 @@ function ThemeToggle() {
 }
 
 function PeriodSwitcher() {
-  const { current, setCurrent, classes } = useCurrentClass();
+  const { current, setCurrent, classes, inSession } = useCurrentClass();
   if (!classes.length) return null;
   return (
-    <Select aria-label="Current class period" value={current?.id ?? ""} onChange={(e) => setCurrent(e.target.value)} className="h-9 w-auto min-w-0 max-w-[11rem] sm:max-w-xs">
+    <Select aria-label="Current class period" title="Follows your bell schedule automatically" value={current?.id ?? ""} onChange={(e) => setCurrent(e.target.value)} className="h-9 w-auto min-w-0 max-w-[11rem] sm:max-w-xs">
       {classes.map((c) => (
         <option key={c.id} value={c.id}>
           {classLabel(c)}
+          {inSession?.id === c.id ? " (now)" : ""}
         </option>
       ))}
     </Select>
@@ -179,6 +182,7 @@ function SignOut() {
 function Shell({ children }: { children: React.ReactNode }) {
   const { profile, adapter } = useData();
   const quickLog = useQuickLog();
+  const openSearch = useCommandPalette();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const path = usePathname();
 
@@ -215,6 +219,11 @@ function Shell({ children }: { children: React.ReactNode }) {
             </Button>
             <Brand className="lg:hidden" compact />
             <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2">
+              <Button variant="outline" onClick={openSearch} aria-label="Search (Ctrl+K)" className="text-muted-foreground max-sm:size-9 max-sm:px-0">
+                <Search />
+                <span className="hidden md:inline">Search</span>
+                <kbd className="hidden rounded border px-1 text-[10px] md:inline">Ctrl K</kbd>
+              </Button>
               <PeriodSwitcher />
               <Button variant="brand" onClick={() => quickLog()} className="hidden sm:inline-flex" title="Quick log (L)">
                 <Plus /> Quick log
@@ -274,7 +283,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <DataProvider>
       <ConfirmProvider>
         <QuickLogProvider>
-          <Shell>{children}</Shell>
+          <CommandPaletteProvider>
+            <Shell>{children}</Shell>
+          </CommandPaletteProvider>
         </QuickLogProvider>
       </ConfirmProvider>
     </DataProvider>

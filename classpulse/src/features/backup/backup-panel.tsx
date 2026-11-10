@@ -10,6 +10,8 @@ import { requestPersistentStorage, storageStatus } from "@/lib/data/indexeddb-st
 import { backupFilename, makeBackup } from "@/lib/backup";
 import { downloadFile } from "@/lib/utils";
 import { RestoreBackup } from "./restore-backup";
+import { canChooseBackupFile, chooseBackupFile, forgetBackupFile, getBackupFile, rememberPassphraseForTab, tabPassphrase, writeBackupFile } from "./backup-file";
+import { useRouter } from "next/navigation";
 
 export const BACKUP_EVENT = "classpulse:backup";
 export const BACKUP_REMINDER_DAYS = 7;
@@ -24,6 +26,45 @@ export function useLastBackup() {
     return () => window.removeEventListener(BACKUP_EVENT, on);
   }, [read]);
   return value;
+}
+
+async function recordBackup(adapter: DemoAdapter) {
+  await adapter.setMeta("lastBackupAt", new Date().toISOString());
+  window.dispatchEvent(new Event(BACKUP_EVENT));
+}
+
+/** Make a backup and save it to the chosen file, or as a download. */
+async function runBackup(adapter: DemoAdapter, passphrase: string | undefined, toFile: boolean) {
+  const text = await makeBackup(await adapter.snapshot(), passphrase);
+  const handle = toFile ? await getBackupFile() : null;
+  if (handle) await writeBackupFile(handle, text);
+  else downloadFile(backupFilename(new Date(), !!passphrase), text, "application/json");
+  await adapter.setMeta("backupEncrypted", passphrase ? "1" : "0");
+  if (passphrase) rememberPassphraseForTab(passphrase);
+  await recordBackup(adapter);
+  return handle?.name ?? null;
+}
+
+/**
+ * "Back up now" from anywhere: writes straight to the chosen backup file when
+ * possible (and, for encrypted backups, the passphrase was entered in this
+ * tab); otherwise opens Settings → Backup & restore.
+ */
+export function useQuickBackup() {
+  const { adapter } = useData();
+  const run = useAction();
+  const router = useRouter();
+  return async () => {
+    if (!(adapter instanceof DemoAdapter)) return;
+    const handle = await getBackupFile();
+    const encrypted = adapter.getMeta("backupEncrypted") !== "0";
+    const pass = tabPassphrase();
+    if (!handle || (encrypted && !pass)) {
+      router.push("/settings#backup");
+      return;
+    }
+    await run(() => runBackup(adapter, encrypted ? pass! : undefined, true), { success: (name) => `Backed up to ${name}` });
+  };
 }
 
 export function daysSince(iso: string | null) {
@@ -45,8 +86,10 @@ export function BackupPanel() {
   const [pass2, setPass2] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [status, setStatus] = React.useState<Awaited<ReturnType<typeof storageStatus>> | null>(null);
+  const [fileName, setFileName] = React.useState<string | null>(null);
   React.useEffect(() => {
     void storageStatus().then(setStatus);
+    void getBackupFile().then((h) => setFileName(h?.name ?? null));
   }, []);
 
   if (!(adapter instanceof DemoAdapter)) return null;
@@ -54,18 +97,22 @@ export function BackupPanel() {
   const canBackup = !protect || (pass.length >= 8 && pass === pass2);
   const days = daysSince(last);
 
-  const backup = async () => {
+  const backup = async (toFile: boolean) => {
     setBusy(true);
-    await run(
-      async () => {
-        const text = await makeBackup(await adapter.snapshot(), protect ? pass : undefined);
-        downloadFile(backupFilename(new Date(), protect), text, "application/json");
-        await adapter.setMeta("lastBackupAt", new Date().toISOString());
-        window.dispatchEvent(new Event(BACKUP_EVENT));
-      },
-      { success: protect ? "Encrypted backup downloaded. Keep the passphrase somewhere safe." : "Backup downloaded. Store it somewhere private — it contains student records." },
-    );
+    await run(() => runBackup(adapter, protect ? pass : undefined, toFile), {
+      success: (name) => (name ? `Backed up to ${name}` : protect ? "Encrypted backup downloaded. Keep the passphrase somewhere safe." : "Backup downloaded. Store it somewhere private — it contains student records."),
+    });
     setBusy(false);
+  };
+
+  const chooseFile = async () => {
+    try {
+      const h = await chooseBackupFile();
+      setFileName(h.name);
+      if (canBackup) await backup(true);
+    } catch (e) {
+      if ((e as Error)?.name !== "AbortError") await run(async () => { throw e; });
+    }
   };
 
   return (
@@ -88,9 +135,37 @@ export function BackupPanel() {
             </Field>
           </div>
         )}
-        <Button variant="brand" className="justify-self-start" disabled={!canBackup || busy} onClick={backup}>
-          <Download /> {busy ? "Preparing…" : "Download backup"}
-        </Button>
+        {fileName ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="brand" disabled={!canBackup || busy} onClick={() => backup(true)}>
+              <Download /> {busy ? "Backing up…" : "Back up now"}
+            </Button>
+            <span className="text-muted-foreground">
+              to <strong className="text-foreground">{fileName}</strong>
+            </span>
+            <Button variant="ghost" size="sm" onClick={chooseFile}>
+              Change file
+            </Button>
+            <Button variant="ghost" size="sm" onClick={async () => { await forgetBackupFile(); setFileName(null); }}>
+              Use downloads instead
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="brand" disabled={!canBackup || busy} onClick={() => backup(false)}>
+              <Download /> {busy ? "Preparing…" : "Download backup"}
+            </Button>
+            {canChooseBackupFile() && (
+              <Button variant="outline" disabled={!canBackup || busy} onClick={chooseFile}>
+                Set up one-click backup…
+              </Button>
+            )}
+          </div>
+        )}
+        {canChooseBackupFile() && !fileName && (
+          <p className="text-xs text-muted-foreground">One-click backup: choose a file once — for example in your OneDrive or Google Drive folder — and &ldquo;Back up now&rdquo; updates it without a download dialog.</p>
+        )}
+        {fileName && protect && <p className="text-xs text-muted-foreground">Your passphrase is remembered only until you close this tab, so &ldquo;Back up now&rdquo; in the banner works without retyping it.</p>}
       </div>
       <div className="grid gap-2">
         <h3 className="font-semibold">Restore</h3>

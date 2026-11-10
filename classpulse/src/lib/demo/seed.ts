@@ -127,6 +127,7 @@ export function generateDemoData(opts: { teacherId: string; today?: Date; seed?:
       description: c.course === "Biology" ? "Introductory biology: cells, genetics, evolution and ecology." : null,
       default_layout_id: null,
       archived_at: null,
+      sub_notes: c.course === "Biology" ? "Lab materials are in the back cabinet. Students may not use the sinks without a teacher present." : null,
     });
     classes.push(cls);
     const size = 22 + Math.floor(rand() * 7); // 22–28
@@ -267,7 +268,7 @@ export function generateDemoData(opts: { teacherId: string; today?: Date; seed?:
   ];
   for (const [i, s] of [...focus].slice(0, 4).entries()) {
     const cls = classes.find((c) => rosters.get(c.id)!.some((x) => x.id === s))!;
-    add("student_notes", { student_id: s, class_id: cls.id, body: noteTexts[i], created_at: at(days[days.length - 3 - i], "15:00", 0) });
+    add("student_notes", { student_id: s, class_id: cls.id, body: noteTexts[i], share_with_sub: i === 1, created_at: at(days[days.length - 3 - i], "15:00", 0) });
   }
 
   // --- interventions -------------------------------------------------------------

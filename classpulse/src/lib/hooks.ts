@@ -58,19 +58,74 @@ export function classInSession(classes: ClassSection[], now = new Date()): Class
   });
 }
 
-/** Selected class period, persisted in user preferences. Falls back to the class in session, then the first class. */
+// When the teacher last picked a period by hand (per device).
+const PICKED_KEY = "classpulse.periodPickedAt";
+const MANUAL_HOLD_MS = 15 * 60_000;
+
+function pickedAt(): number {
+  try {
+    return Number(window.localStorage.getItem(PICKED_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Re-render every `ms` so time-based choices (the class in session) stay current. */
+export function useNow(ms = 30_000) {
+  const [now, setNow] = React.useState(() => new Date());
+  React.useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), ms);
+    return () => clearInterval(t);
+  }, [ms]);
+  return now;
+}
+
+/** Start of a class's period today, as epoch ms (or null if it has no start time). */
+function periodStart(c: ClassSection, now: Date) {
+  const m = minutes(c.start_time);
+  if (m == null) return null;
+  const d = new Date(now);
+  d.setHours(Math.floor(m / 60), m % 60, 0, 0);
+  return d.getTime() - 5 * 60_000;
+}
+
+/**
+ * Selected class period. Follows the bell schedule: while a class is in
+ * session it becomes current automatically, unless the teacher picked a
+ * different period by hand within the last 15 minutes (or since this period
+ * began). Falls back to the saved choice, then the first class.
+ */
 export function useCurrentClass() {
   const { prefs, updatePrefs } = useData();
   const { rows } = useActiveClasses();
-  const current =
-    rows.find((c) => c.id === prefs.current_class_id) ?? classInSession(rows) ?? rows[0] ?? null;
+  const now = useNow();
+  const saved = rows.find((c) => c.id === prefs.current_class_id) ?? null;
+  const inSession = classInSession(rows, now) ?? null;
+  let current = saved ?? inSession ?? rows[0] ?? null;
+  let following = false;
+  if (inSession && inSession.id !== saved?.id) {
+    const picked = pickedAt();
+    const start = periodStart(inSession, now) ?? 0;
+    const manualHold = picked > start && now.getTime() - picked < MANUAL_HOLD_MS;
+    if (!manualHold) {
+      current = inSession;
+      following = true;
+    }
+  } else if (inSession && inSession.id === saved?.id) {
+    following = true;
+  }
   const setCurrent = React.useCallback(
     (id: string) => {
+      try {
+        window.localStorage.setItem(PICKED_KEY, String(Date.now()));
+      } catch {
+        /* ignore */
+      }
       void updatePrefs({ current_class_id: id }).catch(() => undefined);
     },
     [updatePrefs],
   );
-  return { current, setCurrent, classes: rows };
+  return { current, setCurrent, classes: rows, inSession, following };
 }
 
 // Current instructional activity: a per-device convenience that tags quick-logged observations.

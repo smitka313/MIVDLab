@@ -12,7 +12,8 @@ import { cn, displayName, toISODate } from "@/lib/utils";
 import { QuickBehaviorButtons } from "@/features/observations/quick-buttons";
 import { ObservationForm } from "@/features/observations/observation-form";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/input";
+import { Checkbox, Textarea } from "@/components/ui/input";
+import { appendPhrase, DictationTip, NoteTemplateChips } from "@/features/notes/note-templates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 /** Save (or change) today's attendance for one student; returns the stored row. */
@@ -75,18 +76,21 @@ export function NoteForm({ student, classId, onDone }: { student: Student; class
   const store = useStore();
   const run = useAction();
   const [body, setBody] = React.useState("");
+  const [forSub, setForSub] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const ref = React.useRef<HTMLTextAreaElement>(null);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!body.trim()) return;
     setSaving(true);
-    const ok = await run(() => store.insertOne("student_notes", { student_id: student.id, class_id: classId ?? null, body: body.trim() }), {
+    const ok = await run(() => store.insertOne("student_notes", { student_id: student.id, class_id: classId ?? null, body: body.trim(), share_with_sub: forSub }), {
       success: "Note saved",
       undo: (r) => store.remove("student_notes", [r.id]),
     });
     setSaving(false);
     if (ok) {
       setBody("");
+      setForSub(false);
       onDone?.();
     }
   };
@@ -95,8 +99,18 @@ export function NoteForm({ student, classId, onDone }: { student: Student; class
       <label htmlFor={`note-${student.id}`} className="text-sm font-medium">
         Private note about {displayName(student)}
       </label>
-      <Textarea id={`note-${student.id}`} value={body} onChange={(e) => setBody(e.target.value)} maxLength={5000} rows={3} placeholder="Only you can see teacher notes." />
-      <div className="flex justify-end">
+      <NoteTemplateChips
+        onPick={(t) => {
+          setBody((b) => appendPhrase(b, t));
+          ref.current?.focus();
+        }}
+      />
+      <Textarea ref={ref} id={`note-${student.id}`} value={body} onChange={(e) => setBody(e.target.value)} maxLength={5000} rows={3} placeholder="Only you can see teacher notes." />
+      <DictationTip />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox checked={forSub} onChange={(e) => setForSub(e.target.checked)} /> Include in substitute packet
+        </label>
         <Button type="submit" size="sm" disabled={!body.trim() || saving}>
           Save note
         </Button>

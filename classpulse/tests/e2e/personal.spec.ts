@@ -60,7 +60,7 @@ test("encrypted backup restores on a fresh device", async ({ page, browser }) =>
 
   // The reminder appears once there are records and no backup.
   await expect(page.getByText("You haven't made a backup yet.")).toBeVisible();
-  await page.getByRole("link", { name: "Back up now" }).click();
+  await page.getByRole("button", { name: "Back up now" }).click();
   await page.getByLabel("Passphrase", { exact: true }).fill("purple-otter-42");
   await page.getByLabel("Repeat passphrase").fill("purple-otter-42");
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download backup" }).click()]);

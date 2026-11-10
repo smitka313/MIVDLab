@@ -2,7 +2,7 @@ import type { Student } from "@/lib/types";
 
 /** Roster CSV import: column mapping, validation and duplicate detection (pure; unit tested). */
 
-export type ImportField = "first_name" | "last_name" | "full_name" | "preferred_name" | "grade_level" | "school_student_id";
+export type ImportField = "first_name" | "last_name" | "full_name" | "preferred_name" | "grade_level" | "grad_year" | "school_student_id";
 export type Mapping = Partial<Record<ImportField, string>>;
 
 export const FIELD_LABELS: Record<ImportField, string> = {
@@ -11,16 +11,19 @@ export const FIELD_LABELS: Record<ImportField, string> = {
   full_name: "Full name (one column)",
   preferred_name: "Preferred name",
   grade_level: "Grade",
+  grad_year: "Graduation year",
   school_student_id: "Student ID",
 };
 
 const SYNONYMS: Record<ImportField, string[]> = {
-  first_name: ["first name", "firstname", "first", "given name", "student first name", "fname"],
-  last_name: ["last name", "lastname", "last", "surname", "family name", "student last name", "lname"],
-  full_name: ["name", "student name", "full name", "student"],
-  preferred_name: ["preferred name", "preferred", "nickname", "goes by"],
-  grade_level: ["grade", "grade level", "gr", "year"],
-  school_student_id: ["student id", "id", "student number", "sis id", "student #", "local id", "studentid"],
+  first_name: ["first name", "firstname", "first", "given name", "student first name", "fname", "name first", "legal first name"],
+  last_name: ["last name", "lastname", "last", "surname", "family name", "student last name", "lname", "name last", "legal last name"],
+  full_name: ["name", "student name", "full name", "student", "member", "user"],
+  preferred_name: ["preferred name", "preferred", "nickname", "goes by", "name preferred", "preferred first name"],
+  grade_level: ["grade", "grade level", "gr", "current grade"],
+  grad_year: ["grad year", "graduation year", "class of", "year of graduation", "gradyear", "cohort"],
+  // Schoology: "Unique User ID" / "School UID" hold the school's student number.
+  school_student_id: ["student id", "id", "student number", "sis id", "student #", "local id", "studentid", "unique user id", "unique id", "school uid", "uid", "student uid"],
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/[_\-.]+/g, " ").replace(/\s+/g, " ").trim();
@@ -38,6 +41,21 @@ export function guessMapping(headers: string[]): Mapping {
   if (m.first_name && m.last_name) delete m.full_name;
   return m;
 }
+
+/** Which system produced this file, when we can tell (used for a friendly hint). */
+export function detectSource(headers: string[]): "schoology" | null {
+  const h = new Set(headers.map(norm));
+  return h.has("unique user id") || h.has("school uid") || (h.has("name first") && h.has("name last")) ? "schoology" : null;
+}
+
+/** Graduation year -> grade (9–12) for the school year containing `today` (school years start in July). */
+export function gradYearToGrade(gradYear: number, today = new Date()) {
+  const seniorsGraduate = today.getMonth() >= 6 ? today.getFullYear() + 1 : today.getFullYear();
+  return 12 - (gradYear - seniorsGraduate);
+}
+
+/** Summary rows some exports include (e.g. gradebook "Points Possible"); never students. */
+const NOT_STUDENTS = /^(points possible|class average|average|total|max points|category weight)$/i;
 
 export function mappingProblem(m: Mapping): string | null {
   if (m.first_name && m.last_name) return null;
@@ -74,13 +92,18 @@ export interface ImportRow {
 
 const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
 
-export function buildImportRows(rows: Record<string, string>[], m: Mapping, existing: Student[]): ImportRow[] {
+export function buildImportRows(rows: Record<string, string>[], m: Mapping, existing: Student[], today = new Date()): ImportRow[] {
   const byId = new Map(existing.filter((s) => s.school_student_id).map((s) => [s.school_student_id!.toLowerCase(), s]));
   const byName = new Map<string, Student>();
   for (const s of existing) byName.set(`${s.first_name}|${s.last_name}`.toLowerCase(), s);
   const seen = new Set<string>();
 
-  return rows.map((r, i) => {
+  const isBlankOrSummary = (r: Record<string, string>) => {
+    const vals = (["first_name", "last_name", "full_name"] as ImportField[]).map((f) => (m[f] ? String(r[m[f]!] ?? "").trim() : ""));
+    return vals.every((v) => !v) || vals.some((v) => NOT_STUDENTS.test(v));
+  };
+  return rows.flatMap((r, i) => {
+    if (isBlankOrSummary(r)) return []; // skipped silently: not a student row
     const get = (f: ImportField) => (m[f] ? String(r[m[f]!] ?? "").trim() : "");
     const errors: string[] = [];
     let first = get("first_name");
@@ -103,6 +126,11 @@ export function buildImportRows(rows: Record<string, string>[], m: Mapping, exis
       const g = Number(gradeRaw);
       if (!Number.isInteger(g) || g < 9 || g > 12) errors.push(`Grade “${get("grade_level")}” must be 9–12`);
       else grade = g;
+    } else if (get("grad_year")) {
+      const y = Number(get("grad_year").replace(/^class of\s*/i, ""));
+      const g = Number.isInteger(y) ? gradYearToGrade(y, today) : NaN;
+      if (!Number.isInteger(g) || g < 9 || g > 12) errors.push(`Graduation year “${get("grad_year")}” isn't a grade 9–12 student this year`);
+      else grade = g;
     }
     const sid = get("school_student_id") || null;
     if (sid && sid.length > 40) errors.push("Student ID is longer than 40 characters");
@@ -120,7 +148,7 @@ export function buildImportRows(rows: Record<string, string>[], m: Mapping, exis
     else if (nameMatch && !(sid && nameMatch.school_student_id)) match = { student: nameMatch, by: "name" };
 
     const action: ImportRow["action"] = errors.length || duplicateInFile ? "skip" : match ? "use_existing" : "create";
-    return {
+    return [{
       line: i + 2,
       first_name: first,
       last_name: last,
@@ -131,7 +159,7 @@ export function buildImportRows(rows: Record<string, string>[], m: Mapping, exis
       match,
       duplicateInFile,
       action,
-    };
+    }];
   });
 }
 

@@ -68,6 +68,8 @@ export interface UserPreferences {
   notification_prefs: { in_app_reminders: boolean };
   retention_days: number | null;
   current_class_id: UUID | null;
+  /** Saved phrases offered when writing a note. */
+  note_templates: string[];
   created_at: ISODateTime;
   updated_at: ISODateTime;
 }
@@ -101,6 +103,8 @@ export interface ClassSection extends Owned {
   description: string | null;
   default_layout_id: UUID | null;
   archived_at: ISODateTime | null;
+  /** Instructions printed in the substitute packet. */
+  sub_notes: string | null;
 }
 
 export interface Student extends Owned {
@@ -126,6 +130,8 @@ export interface StudentNote extends Owned {
   student_id: UUID;
   class_id: UUID | null;
   body: string;
+  /** Include in the printable substitute packet. */
+  share_with_sub: boolean;
 }
 
 export interface SeatingLayout extends Owned {

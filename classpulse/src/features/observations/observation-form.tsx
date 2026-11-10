@@ -12,6 +12,7 @@ import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/input"
 import { DialogFooter } from "@/components/ui/dialog";
 import { useActiveClasses, useCurrentActivity, useRoster, classLabel } from "@/lib/hooks";
 import { buildObservation } from "./quick-buttons";
+import { DictationTip } from "@/features/notes/note-templates";
 import { displayName } from "@/lib/utils";
 
 const schema = z.object({
@@ -181,6 +182,7 @@ export function ObservationForm({
       </Field>
       <Field label="Teacher note" htmlFor="obs-note" error={e.note?.message} hint="Factual and specific. Visible only to you.">
         <Textarea id="obs-note" rows={3} {...register("note")} />
+        <DictationTip />
       </Field>
       <label className="flex items-center gap-2 text-sm">
         <Checkbox {...register("follow_up_required")} />

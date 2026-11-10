@@ -294,6 +294,7 @@ export class DemoAdapter implements DataAdapter {
       notification_prefs: { in_app_reminders: true },
       retention_days: null,
       current_class_id: null,
+      note_templates: [],
       created_at: ts,
       updated_at: ts,
     };

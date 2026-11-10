@@ -123,6 +123,7 @@ The SVGs are vector redraws of the supplied artwork, so they stay crisp at any s
    - `supabase/migrations/20261110000100_core_schema.sql` — tables, constraints, triggers, audit log
    - `supabase/migrations/20261110000200_security.sql` — row-level security, grants, account/data deletion and retention functions
    - `supabase/migrations/20261110000300_storage.sql` — private `student-photos` bucket and its policies
+   - `supabase/migrations/20261110000400_usability.sql` — substitute-packet fields and saved note phrases
 
    With the Supabase CLI: `supabase link --project-ref <ref>` then `supabase db push`. Or paste each file into the SQL editor.
 3. **Configure auth** (Authentication → URL configuration): set the Site URL to your app URL (for GitHub Pages: `https://<user>.github.io/<repo>/`) and add `<your-url>/auth/callback/` to the redirect URLs. Email/password and email-link sign-in are both supported. For district SSO see [Extending](#extending-classpulse).
@@ -180,9 +181,9 @@ In every case, add `<your-url>/auth/callback/` to Supabase's redirect URLs.
 ```bash
 npm run typecheck   # TypeScript
 npm run lint        # ESLint (Next.js + React Compiler rules)
-npm test            # unit, data-layer, backup and storage tests (Vitest) — 75 tests
+npm test            # unit, data-layer, backup and storage tests (Vitest) — 81 tests
 npm run test:db     # PostgreSQL RLS/authorization tests         — 14 tests
-npm run test:e2e    # Playwright end-to-end on the static build, desktop + phone — 25 tests
+npm run test:e2e    # Playwright end-to-end on the static build, desktop + phone — 35 tests
 ```
 
 `test:db` needs a PostgreSQL 15+ superuser connection in `TEST_DATABASE_URL`, for example `postgres://postgres:postgres@localhost:5432/postgres`. It creates a temporary database, applies the auth shim and all migrations, then checks behavior as the real `authenticated` and `anon` roles. Without the variable the suite is skipped.
@@ -209,6 +210,7 @@ How the acceptance criteria are covered:
 | 14 | Exports produce valid files | unit CSV round-trip; e2e CSV and JSON downloads |
 | 15 | Destructive actions require confirmation | e2e `workflows.spec.ts` (typed confirmation) |
 | — | Installable web app; offline shell; no cross-origin caching | e2e `pwa.spec.ts` |
+| — | Multi-select logging, Today's log undo, seat-tap attendance, display options, recognition marker, Ctrl+K search, substitute packet, note phrases, Schoology import, bell-schedule following | e2e `usability.spec.ts`; unit `usability.test.ts` |
 | — | My classroom: starts empty, persists, separate from demo; encrypted backup restores on a fresh device; one tab at a time | e2e `personal.spec.ts`; unit `personal.test.ts` |
 
 ## What's implemented
@@ -218,7 +220,7 @@ How the acceptance criteria are covered:
 | **Dashboard** | Today's schedule with attendance status per class, daily overview, action items (reminders, intervention reviews, contact follow-ups, flagged observations), recent activity, quick actions, customizable widgets, first-run onboarding checklist |
 | **Classroom** | Class periods (course, period, term, room, meeting days and times, color, description), archive/restore, typed-confirmation delete. Per class: **Live Classroom** (seating chart or roster view, one-click observations, attendance mode, current instructional activity, today's tallies on each seat), **Roster**, **Seating layouts** |
 | **Seating charts** | Templates (rows, pods, tables, lab stations, blank). Drag-and-drop furniture and students, with swapping. Teacher desk, door, lab bench, table, board and window elements. Resize, rename, duplicate, default layout, print. Click-to-assign and arrow-key nudging as keyboard-accessible alternatives to dragging |
-| **Students** | Search, filters, sorting, pagination, bulk enroll/archive, CSV export, optional photo (private storage). **CSV import** with column mapping, preview, validation, duplicate detection (by student ID, then exact name; in-file duplicates) and a per-row error report |
+| **Students** | Search, filters, sorting, pagination, bulk enroll/archive, CSV export, optional photo (private storage). **CSV import** with column mapping, preview, validation, duplicate detection (by student ID, then exact name; in-file duplicates) and a per-row error report. Recognizes **Schoology** exports (Name First/Last, Unique User ID/School UID, Grad Year → grade), skips summary rows such as "Points Possible", and never imports grades. This is a CSV import, not a live Schoology connection, which would need district API keys |
 | **Student profile** | Overview, timeline, attendance, behavior & engagement (weekly chart, most frequent behaviors, by activity), interventions, communication, private notes. Filters by date, class, category and event type |
 | **Attendance** | Present/absent/tardy/excused plus custom statuses. Take attendance from the roster or the seating chart, mark all unmarked present, notes, any date, class history grid, by-student and by-class summaries, trend chart, CSV. Clearly labelled as *not* the official school record |
 | **Behavior & engagement** | Observation history with filters (dates, class, student, type, category, activity, follow-up, text). Detailed entry form. Corrections are saved with full audit history. Configurable categories and quick-log buttons. No numerical behavior scores |
@@ -226,6 +228,7 @@ How the acceptance criteria are covered:
 | **Groups & projects** | Random balanced or manual groups, team roles, lab stations, saved and duplicable configurations, leave out absent students, print. Group observations. Projects with milestones, tasks, group assignment and deadlines |
 | **Communication** | Contact log (email, phone, conference, virtual, student conversation, other) with follow-ups. Message drafting from editable templates and **teacher-selected, factual observations**. A review checkbox is required before copying or opening an email draft. Nothing is ever sent automatically |
 | **Reports & analytics** | 8 reports: student summary, class behavior, attendance, positive recognition (including students with no recognition yet), intervention progress, conference preparation, administrative documentation (private notes only when chosen), group participation. Print / Save as PDF and CSV. Charts: positive/redirection trends, attendance trend, observations by activity, behavior distribution, intervention progress. Every report states its data limitations, such as gaps in documentation |
+| **Daily-use tools** | **Live Classroom:** seat size (compact/normal/large), first-names-only, fill-the-screen cropping. **Select several** students (or tap a table or lab bench to select everyone at it) and log for all with one undo. **Today's log** with one-tap undo and edit. **Attendance by tapping seats** (Absent → Tardy → Excused → Present), then *Mark everyone else present*. A private marker for students **not yet recognized this week**. The **period switcher follows the bell schedule**, with a 15-minute hold after a manual pick. **Search anywhere** with Ctrl/⌘+K (Shift+Enter logs for a student). **Substitute packet:** printable per-class instructions, seating chart, roster and only the notes marked for a sub. **Note phrases** (editable in Settings) and a dictation tip. **One-click backups** to a chosen file in Chrome, Edge and ChromeOS |
 | **Tasks** | In-app reminders (parent contact, conference, intervention review, documentation, general) with priority and due dates, plus items derived from records |
 | **Settings** | Profile, theme (light/dark/system), date and time formats, school years and terms, categories and quick-log buttons, attendance statuses, default seating charts, strategy library, team roles, notifications, data export (JSON), retention policy, demo reset, delete all data, delete account, audit log viewer |
 

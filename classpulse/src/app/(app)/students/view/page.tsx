@@ -285,7 +285,17 @@ function StudentProfilePageInner() {
                       <li key={n.id} className="flex items-start justify-between gap-2 rounded-lg border p-2.5 text-sm">
                         <div>
                           <p className="whitespace-pre-wrap">{n.body}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{fmt.dateTime(n.created_at)}</p>
+                          <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            {fmt.dateTime(n.created_at)}
+                            <button
+                              type="button"
+                              aria-pressed={!!n.share_with_sub}
+                              onClick={() => run(() => store.update("student_notes", n.id, { share_with_sub: !n.share_with_sub }), { success: n.share_with_sub ? "Removed from substitute packet" : "Added to substitute packet" })}
+                              className={cn("rounded-full border px-2 py-0.5", n.share_with_sub ? "border-brand bg-accent text-accent-foreground" : "hover:bg-secondary")}
+                            >
+                              {n.share_with_sub ? "In sub packet" : "Add to sub packet"}
+                            </button>
+                          </p>
                         </div>
                         <div className="flex">
                           <RecordHistoryButton recordId={n.id} label="" />

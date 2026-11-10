@@ -33,7 +33,7 @@ test("undo removes an accidental observation", async ({ page }) => {
   await seat.click();
   await page.getByRole("dialog").getByRole("tab", { name: "Redirection" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Phone use" }).click();
-  await page.getByRole("button", { name: "Undo" }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.getByText("Undone")).toBeVisible();
   await reload(page);
   await expect(page.getByRole("grid").locator(`button[title="${name}"]`)).not.toHaveAttribute("aria-label", /1 redirection/);

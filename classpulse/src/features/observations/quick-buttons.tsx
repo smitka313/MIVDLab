@@ -59,17 +59,21 @@ export function useQuickLogConfig() {
  */
 export function QuickBehaviorButtons({
   student,
+  students,
   classId,
   kinds,
   onLogged,
   compact,
 }: {
-  student: Student;
+  student?: Student;
+  /** Log the same observation for several students at once (one undo). */
+  students?: Student[];
   classId: string;
   kinds?: ObservationKind[];
   onLogged?: () => void;
   compact?: boolean;
 }) {
+  const targets = students ?? (student ? [student] : []);
   const config = useQuickLogConfig();
   const store = useStore();
   const run = useAction();
@@ -78,9 +82,9 @@ export function QuickBehaviorButtons({
 
   const log = async (category: ObservationCategory, behavior: ObservationBehavior) => {
     setBusy(behavior.id);
-    const res = await run(() => store.insertOne("observations", buildObservation({ student, classId, category, behavior, activity })), {
-      success: `${behavior.label} · ${displayName(student)}`,
-      undo: (row) => store.remove("observations", [row.id]),
+    const res = await run(() => store.insert("observations", targets.map((st) => buildObservation({ student: st, classId, category, behavior, activity }))), {
+      success: `${behavior.label} · ${targets.length === 1 ? displayName(targets[0]) : `${targets.length} students`}`,
+      undo: (rows) => store.remove("observations", rows.map((r) => r.id)),
     });
     setBusy(null);
     if (res) onLogged?.();
@@ -107,7 +111,7 @@ export function QuickBehaviorButtons({
                 <button
                   key={b.id}
                   type="button"
-                  disabled={busy !== null}
+                  disabled={busy !== null || !targets.length}
                   onClick={() => log(category, b)}
                   className={cn(
                     "flex min-h-10 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left text-sm leading-tight transition-colors hover:brightness-95 disabled:opacity-60",

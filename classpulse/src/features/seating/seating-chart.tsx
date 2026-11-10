@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { DoorOpen, ThumbsUp, TriangleAlert, Sparkles } from "lucide-react";
+import { Check, DoorOpen, ThumbsUp, TriangleAlert, Sparkles } from "lucide-react";
 import type { AttendanceStatus, Seat, SeatingLayout, Student } from "@/lib/types";
 import { colorClasses, SEAT_KIND_LABELS } from "@/lib/labels";
 import { cn, displayName, initials, shortName } from "@/lib/utils";
@@ -45,12 +45,47 @@ export interface SeatingChartProps {
   onDropStudent?: (studentId: string, seatId: string | null) => void;
   /** assign mode: students without a seat, shown beside the grid as drag sources / drop target. */
   unseated?: Student[];
+  /** Live display options (per device). */
+  display?: ChartDisplay;
+  /** Multi-select: seat ids currently selected (shows a check on each). */
+  selectedIds?: Set<string>;
+  /** Student ids with no positive/engagement observation yet this week. */
+  unrecognized?: Set<string>;
+  /** Live mode: clicking a table/lab bench (e.g. to select the students around it). */
+  onFixtureClick?: (seat: Seat) => void;
 }
 
-const CELL_W = 76; // px, minimum cell width (chart scrolls horizontally on small screens)
-const CELL_H = 64;
+export interface ChartDisplay {
+  size: "compact" | "normal" | "large";
+  firstNamesOnly: boolean;
+  /** Hide empty rows/columns around the furniture so seats fill the screen. */
+  crop: boolean;
+  /** Mark students not yet recognized this week. */
+  highlightUnrecognized: boolean;
+}
 
-export function SeatingChart({ layout, seats, students, mode, live, selectedId, onSelect, onMoveItem, onDropStudent, unseated = [] }: SeatingChartProps) {
+export const DEFAULT_DISPLAY: ChartDisplay = { size: "normal", firstNamesOnly: false, crop: true, highlightUnrecognized: true };
+
+const CELL: Record<ChartDisplay["size"], { w: number; h: number }> = {
+  compact: { w: 64, h: 54 }, // px, minimum cell width (chart scrolls horizontally on small screens)
+  normal: { w: 80, h: 66 },
+  large: { w: 108, h: 86 },
+};
+
+/** Smallest box containing every item, so empty space can be cropped. */
+export function contentBounds(seats: Pick<Seat, "x" | "y" | "w" | "h">[], layout: Pick<SeatingLayout, "cols" | "rows">) {
+  if (!seats.length) return { x: 0, y: 0, cols: layout.cols, rows: layout.rows };
+  const x0 = Math.min(...seats.map((s) => s.x));
+  const y0 = Math.min(...seats.map((s) => s.y));
+  const x1 = Math.max(...seats.map((s) => s.x + s.w));
+  const y1 = Math.max(...seats.map((s) => s.y + s.h));
+  return { x: x0, y: y0, cols: Math.max(1, x1 - x0), rows: Math.max(1, y1 - y0) };
+}
+
+export function SeatingChart({ layout, seats, students, mode, live, selectedId, onSelect, onMoveItem, onDropStudent, unseated = [], display = DEFAULT_DISPLAY, selectedIds, unrecognized, onFixtureClick }: SeatingChartProps) {
+  const editing = mode === "arrange" || mode === "assign";
+  const box = display.crop && !editing ? contentBounds(seats, layout) : { x: 0, y: 0, cols: layout.cols, rows: layout.rows };
+  const cell = CELL[mode === "print" ? "normal" : display.size];
   const gridRef = React.useRef<HTMLDivElement>(null);
   const [drag, setDragState] = React.useState<DragState | null>(null);
   const dragRef = React.useRef<DragState | null>(null);
@@ -145,13 +180,15 @@ export function SeatingChart({ layout, seats, students, mode, live, selectedId, 
           ref={gridRef}
           role="grid"
           aria-label={`Seating chart: ${layout.name}`}
-          aria-rowcount={layout.rows}
-          aria-colcount={layout.cols}
+          aria-rowcount={box.rows}
+          aria-colcount={box.cols}
           className="relative mx-auto grid select-none gap-1"
           style={{
-            gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
-            gridTemplateRows: `repeat(${layout.rows}, ${CELL_H}px)`,
-            minWidth: layout.cols * CELL_W * (mode === "print" ? 0.8 : 1),
+            gridTemplateColumns: `repeat(${box.cols}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${box.rows}, ${cell.h}px)`,
+            // Editing keeps roomy cells (and scrolls); live views shrink to fit unless "large" is chosen.
+            minWidth: box.cols * (mode === "print" ? cell.w * 0.8 : editing || display.size === "large" ? cell.w : Math.min(cell.w, 58)),
+            maxWidth: !editing && display.crop ? box.cols * cell.w * 1.9 : undefined,
           }}
         >
           {mode === "arrange" &&
@@ -165,13 +202,24 @@ export function SeatingChart({ layout, seats, students, mode, live, selectedId, 
             return (
               <SeatTile
                 key={s.id}
-                seat={s}
+                seat={box.x === 0 && box.y === 0 ? s : { ...s, x: s.x - box.x, y: s.y - box.y }}
                 student={student}
                 info={info}
                 mode={mode}
                 selected={selectedId === s.id}
+                checked={selectedIds?.has(s.id) ?? false}
+                selecting={!!selectedIds}
+                unrecognized={!!student && display.highlightUnrecognized && !!unrecognized?.has(student.id)}
+                firstNamesOnly={display.firstNamesOnly}
+                large={display.size === "large" && mode !== "print"}
                 dimmed={!!isDragging}
-                onClick={interactive ? () => !suppressClick.current && onSelect?.(s) : undefined}
+                onClick={
+                  !interactive
+                    ? undefined
+                    : s.kind !== "seat" && onFixtureClick && !editing
+                      ? () => onFixtureClick(s)
+                      : () => !suppressClick.current && onSelect?.(s)
+                }
                 onPointerDown={
                   mode === "arrange"
                     ? (e) => {
@@ -235,6 +283,11 @@ function SeatTile({
   info,
   mode,
   selected,
+  checked = false,
+  selecting = false,
+  unrecognized = false,
+  firstNamesOnly = false,
+  large = false,
   dimmed,
   onClick,
   onPointerDown,
@@ -244,6 +297,11 @@ function SeatTile({
   info?: LiveInfo;
   mode: ChartMode;
   selected: boolean;
+  checked?: boolean;
+  selecting?: boolean;
+  unrecognized?: boolean;
+  firstNamesOnly?: boolean;
+  large?: boolean;
   dimmed: boolean;
   onClick?: () => void;
   onPointerDown?: (e: React.PointerEvent) => void;
@@ -253,21 +311,22 @@ function SeatTile({
   const common = cn(
     "relative flex min-w-0 items-center justify-center overflow-hidden rounded-lg text-xs transition-shadow",
     draggable && "touch-none cursor-grab active:cursor-grabbing",
-    selected && "ring-2 ring-brand ring-offset-1 ring-offset-background",
+    (selected || checked) && "ring-2 ring-brand ring-offset-1 ring-offset-background",
     dimmed && "opacity-40",
   );
 
   if (seat.kind !== "seat") {
+    // Brand palette: navy furniture, teal lab benches; tuned for both themes.
     const fixtureStyle: Record<string, string> = {
-      board: "bg-slate-700 text-slate-100 dark:bg-slate-600",
-      teacher_desk: "border border-slate-300 bg-slate-200 font-medium text-slate-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100",
-      door: "border-2 border-dashed border-slate-400 text-muted-foreground",
-      lab_bench: "border border-cyan-300 bg-cyan-100/70 text-cyan-900 dark:border-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-200",
-      table: "border border-amber-300/70 bg-amber-100/60 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+      board: "bg-[#001a40] text-white dark:bg-[#13315f] dark:text-[#e6eef7]",
+      teacher_desk: "border border-[#c9d5e3] bg-[#e3eaf3] font-medium text-[#0b2550] dark:border-[#2a4675] dark:bg-[#132a52] dark:text-[#d4e1f1]",
+      door: "border-2 border-dashed border-[#7991af] text-muted-foreground",
+      lab_bench: "border border-[#7cd1d9] bg-[#e2f6f8] text-[#005f69] dark:border-[#1a6a75] dark:bg-[#0a3442] dark:text-[#9fe3ea]",
+      table: "border border-[#b8c7da] bg-[#eef3f9] text-[#33496b] dark:border-[#2a4675] dark:bg-[#0f2347] dark:text-[#b9c8de]",
       window: "border border-sky-300 bg-sky-100/70 text-sky-800 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-200",
     };
     const label = seat.label ?? (seat.kind === "table" || seat.kind === "lab_bench" ? "" : SEAT_KIND_LABELS[seat.kind]);
-    const interactive = mode === "arrange";
+    const interactive = mode === "arrange" || (!!onClick && (seat.kind === "table" || seat.kind === "lab_bench") && selecting);
     const Tag = interactive ? "button" : "div";
     return (
       <Tag
@@ -276,7 +335,7 @@ function SeatTile({
         className={cn(common, fixtureStyle[seat.kind])}
         onClick={interactive ? onClick : undefined}
         onPointerDown={interactive ? onPointerDown : undefined}
-        aria-label={interactive ? `${SEAT_KIND_LABELS[seat.kind]}${seat.label ? `: ${seat.label}` : ""}` : undefined}
+        aria-label={interactive ? (mode === "arrange" ? `${SEAT_KIND_LABELS[seat.kind]}${seat.label ? `: ${seat.label}` : ""}` : `Select everyone at this ${SEAT_KIND_LABELS[seat.kind].toLowerCase()}`) : undefined}
       >
         {seat.kind === "door" && <DoorOpen className="mr-1 size-3.5" aria-hidden />}
         <span className="truncate px-1">{label}</span>
@@ -287,9 +346,9 @@ function SeatTile({
   const status = info?.status;
   const sc = status ? colorClasses(status.color) : null;
   const absent = status?.counts_as === "absent" || status?.counts_as === "excused";
-  const name = student ? shortName(student) : mode === "live" || mode === "print" ? "" : "Empty seat";
+  const name = student ? (firstNamesOnly ? student.preferred_name?.trim() || student.first_name : shortName(student)) : mode === "live" || mode === "print" || mode === "attendance" ? "" : "Empty seat";
   const ariaLabel = student
-    ? `${displayName(student)}${status ? `, ${status.label}` : ""}${info ? `, ${info.positive} positive, ${info.redirection} redirections today` : ""}`
+    ? `${displayName(student)}${status ? `, ${status.label}` : ""}${info ? `, ${info.positive} positive, ${info.redirection} redirections today` : ""}${unrecognized ? ", not yet recognized this week" : ""}${selecting ? (checked ? ", selected" : ", not selected") : ""}`
     : `Empty seat${seat.label ? ` ${seat.label}` : ""}`;
   const clickable = !!onClick && (student || mode === "arrange" || mode === "assign");
 
@@ -301,6 +360,7 @@ function SeatTile({
       title={student ? displayName(student) : undefined}
       disabled={!clickable}
       aria-label={ariaLabel}
+      aria-pressed={selecting && student ? checked : undefined}
       onClick={onClick}
       onPointerDown={onPointerDown}
       className={cn(
@@ -310,15 +370,24 @@ function SeatTile({
         absent && "opacity-60",
         sc && mode !== "print" && sc.border,
         !clickable && "cursor-default",
+        checked && "bg-accent",
       )}
     >
+      {unrecognized && mode !== "print" && (
+        <span aria-hidden title="Not yet recognized this week" className="absolute right-1 top-1 size-2 rounded-full border-2 border-brand bg-transparent" />
+      )}
+      {checked && (
+        <span aria-hidden className="absolute left-1 top-1 grid size-4 place-items-center rounded-full bg-brand text-brand-foreground">
+          <Check className="size-3" />
+        </span>
+      )}
       {student ? (
         <>
           <span className="flex w-full items-center gap-1">
-            <span aria-hidden className={cn("grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold", sc ? `${sc.soft} ${sc.text}` : "bg-secondary")}>
+            <span aria-hidden className={cn("grid shrink-0 place-items-center rounded-full font-semibold", large ? "size-6 text-[11px]" : "size-5 text-[10px]", sc ? `${sc.soft} ${sc.text}` : "bg-secondary", checked && "invisible")}>
               {status && mode !== "print" ? status.code : initials(student)}
             </span>
-            <span className="truncate text-[12px] font-medium leading-tight">{name}</span>
+            <span className={cn("truncate font-medium leading-tight", large ? "text-[14px]" : "text-[12px]")}>{name}</span>
           </span>
           {info && mode !== "print" && (info.positive > 0 || info.redirection > 0 || info.engagement > 0) && (
             <span aria-hidden className="flex w-full items-center gap-1.5 text-[10px] text-muted-foreground">

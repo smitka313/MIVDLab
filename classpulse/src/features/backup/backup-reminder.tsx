@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { HardDrive, X } from "lucide-react";
 import { useData, useRows } from "@/components/providers/data-provider";
-import { BACKUP_REMINDER_DAYS, daysSince, useLastBackup } from "./backup-panel";
+import { BACKUP_REMINDER_DAYS, daysSince, useLastBackup, useQuickBackup } from "./backup-panel";
 
 const DISMISS_KEY = "classpulse.backupReminderDismissed";
 
@@ -21,6 +20,7 @@ export function BackupReminder() {
     }
   });
   const days = daysSince(last);
+  const quickBackup = useQuickBackup();
   if (adapter.mode !== "personal" || dismissed || !students.rows.length) return null;
   if (days != null && days <= BACKUP_REMINDER_DAYS) return null;
   return (
@@ -28,9 +28,9 @@ export function BackupReminder() {
       <HardDrive className="size-3.5 shrink-0" aria-hidden />
       <span>
         Your records are saved only on this device. {last ? `Last backup was ${days} days ago.` : "You haven't made a backup yet."}{" "}
-        <Link href="/settings#backup" className="underline underline-offset-2">
+        <button type="button" onClick={() => void quickBackup()} className="font-semibold underline underline-offset-2">
           Back up now
-        </Link>
+        </button>
       </span>
       <button
         type="button"

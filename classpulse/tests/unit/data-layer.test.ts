@@ -18,7 +18,7 @@ async function setup() {
 }
 
 async function classWithStudent(store: Store) {
-  const cls = await store.insertOne("classes", { course_name: "Biology", period: "1", period_order: 1, room: null, meeting_days: ["Mon"], start_time: null, end_time: null, color: "teal", description: null, school_id: null, academic_year_id: null, term_id: null, default_layout_id: null, archived_at: null });
+  const cls = await store.insertOne("classes", { course_name: "Biology", period: "1", period_order: 1, room: null, meeting_days: ["Mon"], start_time: null, end_time: null, color: "teal", description: null, school_id: null, academic_year_id: null, term_id: null, default_layout_id: null, archived_at: null, sub_notes: null });
   const st = await store.insertOne("students", { first_name: "Ana", last_name: "Rivera", preferred_name: null, grade_level: 10, school_student_id: "1", school_id: null, photo_path: null, is_demo: true, archived_at: null });
   await store.insert("enrollments", [{ class_id: cls.id, student_id: st.id, enrolled_at: "2026-09-01", dropped_at: null }]);
   return { cls, st };

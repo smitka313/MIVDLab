@@ -7,7 +7,7 @@ import { ensureDefaults } from "@/lib/defaults";
 import { BackupError, backupSummary, isEncryptedBackup, makeBackup, readBackup } from "@/lib/backup";
 import { generateDemoData } from "@/lib/demo/seed";
 
-const newClass = { course_name: "Biology", period: "1", period_order: 1, room: null, meeting_days: ["Mon"], start_time: null, end_time: null, color: "teal", description: null, school_id: null, academic_year_id: null, term_id: null, default_layout_id: null, archived_at: null };
+const newClass = { course_name: "Biology", period: "1", period_order: 1, room: null, meeting_days: ["Mon"], start_time: null, end_time: null, color: "teal", description: null, school_id: null, academic_year_id: null, term_id: null, default_layout_id: null, archived_at: null, sub_notes: null };
 const newStudent = { first_name: "Ana", last_name: "Rivera", preferred_name: null, grade_level: 10, school_student_id: null, school_id: null, photo_path: null, is_demo: false, archived_at: null };
 
 async function personal(storage: KeyValueStorage = new MemoryStorage()) {

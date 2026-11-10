@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Download, FlaskConical, MonitorDown, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useInstallApp } from "@/components/providers/pwa";
 import { BackupPanel } from "@/features/backup/backup-panel";
+import { useNoteTemplates } from "@/features/notes/note-templates";
 import { setLocalMode } from "@/lib/data/local-mode";
 import { isSupabaseConfigured } from "@/lib/config";
 import { PageHeader } from "@/components/app/app-shell";
@@ -72,6 +73,11 @@ export default function SettingsPage() {
               <div>
                 <h3 className="mb-2 text-sm font-semibold">Intervention strategy library</h3>
                 <NamedListEditor table="intervention_strategies" noun="strategy" />
+              </div>
+              <div>
+                <h3 className="mb-1 text-sm font-semibold">Note phrases</h3>
+                <p className="mb-2 text-xs text-muted-foreground">One-tap phrases offered when you write a student note.</p>
+                <NotePhrasesEditor />
               </div>
               <div>
                 <h3 className="mb-2 text-sm font-semibold">Team roles</h3>
@@ -392,6 +398,45 @@ function BackupSection() {
     <Section id="backup" title="Backup & restore" description="My classroom is saved only on this device. A backup file is your copy: use it to recover, or to move to another computer or browser.">
       <BackupPanel />
     </Section>
+  );
+}
+
+function NotePhrasesEditor() {
+  const { updatePrefs } = useData();
+  const run = useAction();
+  const phrases = useNoteTemplates();
+  const [draft, setDraft] = React.useState("");
+  const save = (list: string[]) => run(() => updatePrefs({ note_templates: list }), { success: "Phrases saved" });
+  return (
+    <div className="grid gap-2">
+      <ul className="divide-y rounded-xl border bg-card">
+        {phrases.map((p, i) => (
+          <li key={`${i}-${p}`} className="flex items-center gap-2 px-3 py-2 text-sm">
+            <span className="min-w-0 flex-1">{p}</span>
+            <Button size="icon-sm" variant="ghost" aria-label={`Remove phrase: ${p}`} onClick={() => save(phrases.filter((_, j) => j !== i))}>
+              <Trash2 />
+            </Button>
+          </li>
+        ))}
+      </ul>
+      <form
+        className="flex flex-wrap gap-2"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const t = draft.trim();
+          if (!t) return;
+          if (await save([...phrases, t].slice(0, 100))) setDraft("");
+        }}
+      >
+        <Input aria-label="New phrase" placeholder="New phrase (e.g. Left class to see the counselor)" value={draft} maxLength={200} onChange={(e) => setDraft(e.target.value)} className="min-w-64 flex-1" />
+        <Button type="submit" variant="outline" disabled={!draft.trim()}>
+          <Plus /> Add phrase
+        </Button>
+        <Button type="button" variant="ghost" onClick={() => save([])}>
+          Reset to starter phrases
+        </Button>
+      </form>
+    </div>
   );
 }
 

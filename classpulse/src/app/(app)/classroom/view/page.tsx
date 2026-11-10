@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, LayoutGrid, Pencil, Plus, Presentation, Upload, UserMinus, UserPlus, Users } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
-import { useAction, useData, useRows, useStore, useTables } from "@/components/providers/data-provider";
+import { useAction, useRows, useStore, useTables } from "@/components/providers/data-provider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox, Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ import { LiveClassroom } from "@/features/classroom/live-classroom";
 import { LayoutEditor } from "@/features/seating/layout-editor";
 import { StudentForm } from "@/features/students/student-form";
 import { StudentAvatar } from "@/features/students/photo";
-import { useRoster } from "@/lib/hooks";
+import { useCurrentClass, useRoster } from "@/lib/hooks";
 import type { ClassSection, Student } from "@/lib/types";
 import { byName, displayName, formatTime, toISODate } from "@/lib/utils";
 
@@ -39,15 +39,15 @@ function ClassPageInner() {
   const classes = useRows("classes");
   const cls = classes.rows.find((c) => c.id === classId);
   const roster = useRoster(classId);
-  const { prefs, updatePrefs } = useData();
+  const { current, setCurrent } = useCurrentClass();
   const [tab, setTab] = React.useState("live");
   const [layoutId, setLayoutId] = React.useState<string | null>(null);
   const [editing, setEditing] = React.useState(false);
 
   // Opening a class makes it the current period.
   React.useEffect(() => {
-    if (cls && prefs.current_class_id !== cls.id) void updatePrefs({ current_class_id: cls.id }).catch(() => undefined);
-  }, [cls, prefs.current_class_id, updatePrefs]);
+    if (cls && current?.id !== cls.id) setCurrent(cls.id);
+  }, [cls, current?.id, setCurrent]);
 
   if (status.error) return <ErrorState error={status.error} onRetry={status.retry} />;
   if (status.loading) return <LoadingState />;
