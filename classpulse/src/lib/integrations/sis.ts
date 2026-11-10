@@ -1,9 +1,10 @@
 /**
  * Student Information System (SIS) integration boundary.
  *
- * ClassPulse does NOT currently synchronize with any SIS. This interface defines
- * the shape a future, district-approved connector (e.g. OneRoster 1.2 or a
- * vendor API) must implement. Any connector must run server-side with its own
+ * ClassPulse does NOT currently synchronize with any SIS. Rosters come in by CSV
+ * (PowerSchool and Schoology exports are recognized; see features/students/import-logic.ts). This interface defines
+ * the shape a future, district-approved connector (e.g. PowerSchool's OneRoster 1.2 API or a
+ * PowerSchool plugin with OAuth client credentials) must implement. Any connector must run server-side with its own
  * credentials and be reviewed under the district's data-privacy agreements.
  */
 

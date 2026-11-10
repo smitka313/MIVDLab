@@ -181,9 +181,9 @@ In every case, add `<your-url>/auth/callback/` to Supabase's redirect URLs.
 ```bash
 npm run typecheck   # TypeScript
 npm run lint        # ESLint (Next.js + React Compiler rules)
-npm test            # unit, data-layer, backup and storage tests (Vitest) — 81 tests
+npm test            # unit, data-layer, backup and storage tests (Vitest) — 88 tests
 npm run test:db     # PostgreSQL RLS/authorization tests         — 14 tests
-npm run test:e2e    # Playwright end-to-end on the static build, desktop + phone — 35 tests
+npm run test:e2e    # Playwright end-to-end on the static build, desktop + phone — 36 tests
 ```
 
 `test:db` needs a PostgreSQL 15+ superuser connection in `TEST_DATABASE_URL`, for example `postgres://postgres:postgres@localhost:5432/postgres`. It creates a temporary database, applies the auth shim and all migrations, then checks behavior as the real `authenticated` and `anon` roles. Without the variable the suite is skipped.
@@ -210,7 +210,7 @@ How the acceptance criteria are covered:
 | 14 | Exports produce valid files | unit CSV round-trip; e2e CSV and JSON downloads |
 | 15 | Destructive actions require confirmation | e2e `workflows.spec.ts` (typed confirmation) |
 | — | Installable web app; offline shell; no cross-origin caching | e2e `pwa.spec.ts` |
-| — | Multi-select logging, Today's log undo, seat-tap attendance, display options, recognition marker, Ctrl+K search, substitute packet, note phrases, Schoology import, bell-schedule following | e2e `usability.spec.ts`; unit `usability.test.ts` |
+| — | Multi-select logging, Today's log undo, seat-tap attendance, display options, recognition marker, Ctrl+K search, substitute packet, note phrases, Schoology and PowerSchool imports, bell-schedule following | e2e `usability.spec.ts`; unit `usability.test.ts`, `powerschool.test.ts` |
 | — | My classroom: starts empty, persists, separate from demo; encrypted backup restores on a fresh device; one tab at a time | e2e `personal.spec.ts`; unit `personal.test.ts` |
 
 ## What's implemented
@@ -220,7 +220,11 @@ How the acceptance criteria are covered:
 | **Dashboard** | Today's schedule with attendance status per class, daily overview, action items (reminders, intervention reviews, contact follow-ups, flagged observations), recent activity, quick actions, customizable widgets, first-run onboarding checklist |
 | **Classroom** | Class periods (course, period, term, room, meeting days and times, color, description), archive/restore, typed-confirmation delete. Per class: **Live Classroom** (seating chart or roster view, one-click observations, attendance mode, current instructional activity, today's tallies on each seat), **Roster**, **Seating layouts** |
 | **Seating charts** | Templates (rows, pods, tables, lab stations, blank). Drag-and-drop furniture and students, with swapping. Teacher desk, door, lab bench, table, board and window elements. Resize, rename, duplicate, default layout, print. Click-to-assign and arrow-key nudging as keyboard-accessible alternatives to dragging |
-| **Students** | Search, filters, sorting, pagination, bulk enroll/archive, CSV export, optional photo (private storage). **CSV import** with column mapping, preview, validation, duplicate detection (by student ID, then exact name; in-file duplicates) and a per-row error report. Recognizes **Schoology** exports (Name First/Last, Unique User ID/School UID, Grad Year → grade), skips summary rows such as "Points Possible", and never imports grades. This is a CSV import, not a live Schoology connection, which would need district API keys |
+| **Students** | Search, filters, sorting, pagination, bulk enroll/archive, CSV export, optional photo (private storage). **CSV import** with column mapping, preview, validation, duplicate detection (by student ID, then exact name; in-file duplicates) and a per-row error report. Recognizes **PowerSchool** exports and **Schoology** exports. These are CSV imports, not live connections; a live link to either would need district-issued API credentials.
+
+**PowerSchool:** column names such as Student_Number, First_Name, Last_Name, LastFirst and Grade_Level, including prefixed forms like `Students.First_Name` and `[1]First_Name`. The internal `ID`/`DCID` is never used as the student number. Students not currently enrolled (Enroll_Status ≠ 0) are skipped. A file covering several sections (Course_Name / Section_Number / Expression such as `3(A)`) is sorted into your classes in one pass: students go into matching classes, and missing ones are created. Sensitive columns such as DOB, gender or address are flagged and never read.
+
+**Schoology:** Name First/Last, Unique User ID/School UID, and Grad Year → grade. Summary rows such as "Points Possible" are skipped, and grades are never imported. |
 | **Student profile** | Overview, timeline, attendance, behavior & engagement (weekly chart, most frequent behaviors, by activity), interventions, communication, private notes. Filters by date, class, category and event type |
 | **Attendance** | Present/absent/tardy/excused plus custom statuses. Take attendance from the roster or the seating chart, mark all unmarked present, notes, any date, class history grid, by-student and by-class summaries, trend chart, CSV. Clearly labelled as *not* the official school record |
 | **Behavior & engagement** | Observation history with filters (dates, class, student, type, category, activity, follow-up, text). Detailed entry form. Corrections are saved with full audit history. Configurable categories and quick-log buttons. No numerical behavior scores |

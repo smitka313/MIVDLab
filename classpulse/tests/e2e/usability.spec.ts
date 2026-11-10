@@ -146,3 +146,36 @@ test("the period switcher follows the bell schedule unless picked by hand", asyn
   await reload(page);
   await expect(page.getByLabel("Current class period").locator("option:checked")).toHaveText(/P5 · Principles of Engineering \(now\)/);
 });
+
+test("PowerSchool multi-section export sorts students into classes", async ({ page }) => {
+  await openApp(page, "/students/import");
+  const file = path.join(os.tmpdir(), `powerschool-${Date.now()}.csv`);
+  fs.writeFileSync(
+    file,
+    [
+      "Students.ID,Students.Student_Number,Students.First_Name,Students.Last_Name,Students.Grade_Level,Students.Enroll_Status,Students.DOB,Course_Name,Section_Number,Expression",
+      "9901,PS-1,Parker,Powers,10,0,2010-01-01,Biology,2,1(A)",
+      "9902,PS-2,Quinn,Powers,11,0,2009-01-01,Forensic Science,5,7(A)",
+      "9901,PS-1,Parker,Powers,10,0,2010-01-01,Forensic Science,5,7(A)",
+      "9903,PS-3,Reese,Powers,12,2,2008-01-01,Forensic Science,5,7(A)",
+    ].join("\n"),
+  );
+  await page.locator('input[type="file"]').setInputFiles(file);
+  await expect(page.getByText("Looks like a PowerSchool export")).toBeVisible();
+  await expect(page.getByRole("note").filter({ hasText: "sensitive columns" })).toContainText("Students.DOB");
+  await page.getByRole("button", { name: "Review rows" }).click();
+  // Period 1 Biology already exists in the demo; Forensic Science P7 doesn't.
+  await expect(page.getByLabel("Class for Biology · period 1 · section 2")).toHaveValue(/.+/);
+  await expect(page.getByLabel("Class for Biology · period 1 · section 2").locator("option:checked")).toHaveText("Add to P1 · Biology");
+  await expect(page.getByLabel("Class for Forensic Science · period 7 · section 5").locator("option:checked")).toHaveText(/Create new class: Forensic Science \(P7\)/);
+  await expect(page.getByText(/Not currently enrolled \(transferred out\)/)).toBeVisible();
+  await page.getByRole("button", { name: /Import 2 students/ }).click();
+  await expect(page.getByText("2 new students created")).toBeVisible();
+  await expect(page.getByText("1 class created")).toBeVisible();
+  await page.goto("/classroom");
+  await page.getByRole("link", { name: "Forensic Science" }).click();
+  await page.getByRole("tab", { name: "Roster" }).click();
+  await expect(page.getByRole("link", { name: "Quinn Powers" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Parker Powers" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Reese Powers" })).toHaveCount(0);
+});
