@@ -1,4 +1,7 @@
 "use client";
+import { withBase } from "@/lib/paths";
+
+import { classHref } from "@/lib/paths";
 
 import * as React from "react";
 import Link from "next/link";
@@ -335,7 +338,7 @@ function SeatingDefaultsSection() {
                   ))}
                 </Select>
               ) : (
-                <Link href={`/classroom/${c.id}`} className="text-xs underline">
+                <Link href={classHref(c.id)} className="text-xs underline">
                   Create a layout
                 </Link>
               )}
@@ -506,7 +509,7 @@ function DataSection() {
                   const ok = await confirm({ title: "Delete your account?", description: "Your account and every record it owns will be permanently deleted. This cannot be undone.", confirmLabel: "Delete my account", destructive: true, typeToConfirm: "DELETE MY ACCOUNT" });
                   if (ok) {
                     const done = await run(async () => { await adapter.deleteAccount(); return true; }, { success: "Account deleted" });
-                    if (done) window.location.assign("/login");
+                    if (done) window.location.assign(withBase("/login/"));
                   }
                 }}
               >

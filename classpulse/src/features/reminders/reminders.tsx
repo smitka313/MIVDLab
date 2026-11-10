@@ -1,5 +1,7 @@
 "use client";
 
+import { studentHref } from "@/lib/paths";
+
 import * as React from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -148,7 +150,7 @@ export function ReminderItem({ r, onEdit, compact }: { r: Reminder; onEdit?: () 
           <span className={cn(overdue && "font-semibold text-destructive")}>{r.due_date ? `${overdue ? "Overdue · " : "Due "}${fmt.short(r.due_date)}` : "No due date"}</span>
           <span>{REMINDER_KIND_LABELS[r.kind]}</span>
           {s && (
-            <Link href={`/students/${s.id}`} className="hover:underline">
+            <Link href={studentHref(s.id)} className="hover:underline">
               {displayName(s)}
             </Link>
           )}

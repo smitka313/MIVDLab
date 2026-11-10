@@ -1,23 +1,22 @@
 import type { NextConfig } from "next";
 
+/**
+ * ClassPulse builds to plain static files (`out/`), so it can be hosted on
+ * GitHub Pages, Vercel, Netlify, Cloudflare Pages or any web server.
+ * All data access happens in the browser and is authorized by Supabase
+ * row-level security, so no application server is needed.
+ *
+ * NEXT_PUBLIC_BASE_PATH: set to "/<repo>" for a GitHub Pages project site
+ * (https://<user>.github.io/<repo>/). Leave empty for a root domain.
+ */
+const basePath = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/+$/, "");
+
 const nextConfig: NextConfig = {
-  // ClassPulse renders classroom data on the client after sign-in (all access is
-  // authorized by Supabase row-level security), so Cache Components / partial
-  // prefetching are not used.
+  output: "export",
+  basePath: basePath || undefined,
+  trailingSlash: true,
+  images: { unoptimized: true },
   poweredByHeader: false,
-  async headers() {
-    return [
-      {
-        // The service worker must always be re-fetched so updates roll out promptly.
-        source: "/sw.js",
-        headers: [
-          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
-          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
-          { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self'" },
-        ],
-      },
-    ];
-  },
   turbopack: {
     rules: {
       "*.css": {

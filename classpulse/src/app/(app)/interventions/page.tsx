@@ -1,5 +1,7 @@
 "use client";
 
+import { planHref, studentHref } from "@/lib/paths";
+
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -99,7 +101,7 @@ function Interventions() {
                       <TR key={p.id}>
                         <TD className="font-medium">
                           {s ? (
-                            <Link href={`/students/${s.id}`} className="hover:underline">
+                            <Link href={studentHref(s.id)} className="hover:underline">
                               {displayName(s)}
                             </Link>
                           ) : (
@@ -108,7 +110,7 @@ function Interventions() {
                           {c && <span className="block text-xs font-normal text-muted-foreground">{classLabel(c)}</span>}
                         </TD>
                         <TD>
-                          <Link href={`/interventions/${p.id}`} className="hover:underline">
+                          <Link href={planHref(p.id)} className="hover:underline">
                             {p.target_behavior}
                           </Link>
                         </TD>
@@ -147,7 +149,7 @@ function Interventions() {
               defaultStudentId={creating || undefined}
               onDone={(p) => {
                 setCreating(null);
-                if (p) router.push(`/interventions/${p.id}`);
+                if (p) router.push(planHref(p.id));
               }}
             />
           )}

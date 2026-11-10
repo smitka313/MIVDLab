@@ -1,4 +1,5 @@
 "use client";
+import { withBase } from "@/lib/paths";
 
 import * as React from "react";
 import Link from "next/link";
@@ -57,13 +58,13 @@ function Brand({ className, compact, onDark }: { className?: string; compact?: b
     <Link href="/dashboard" aria-label="ClassPulse home" className={cn("flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight", className)}>
       {onDark ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src="/brand/classpulse-mark-reverse.svg" alt="" className="size-9 drop-shadow-[0_0_6px_rgba(28,198,211,0.55)]" />
+        <img src={withBase("/brand/classpulse-mark-reverse.svg")} alt="" className="size-9 drop-shadow-[0_0_6px_rgba(28,198,211,0.55)]" />
       ) : (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/classpulse-mark.svg" alt="" className="size-9 dark:hidden" />
+          <img src={withBase("/brand/classpulse-mark.svg")} alt="" className="size-9 dark:hidden" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/classpulse-mark-reverse.svg" alt="" className="hidden size-9 dark:block" />
+          <img src={withBase("/brand/classpulse-mark-reverse.svg")} alt="" className="hidden size-9 dark:block" />
         </>
       )}
       <span className={compact ? "hidden sm:inline" : undefined}>
@@ -165,7 +166,7 @@ function SignOut() {
       onClick={async () => {
         await getBrowserSupabase().auth.signOut();
         navigator.serviceWorker?.controller?.postMessage("clear-caches");
-        window.location.assign("/login");
+        window.location.assign(withBase("/login/"));
       }}
       className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-muted hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
     >

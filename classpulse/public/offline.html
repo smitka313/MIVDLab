@@ -18,10 +18,17 @@
 </head>
 <body>
   <main class="card">
-    <img src="/brand/classpulse-app-icon.svg" alt="ClassPulse">
+    <img id="logo" src="data:," alt="ClassPulse">
     <h1>You're offline</h1>
     <p>ClassPulse needs a connection to load and save classroom records. Nothing was saved while you were offline. Reconnect and try again.</p>
     <button type="button" onclick="location.reload()">Try again</button>
   </main>
+<script>
+  // Resolve the logo relative to the service worker scope (works under a GitHub Pages sub-path).
+  (navigator.serviceWorker ? navigator.serviceWorker.getRegistration() : Promise.resolve(null)).then(function (r) {
+    var base = r ? new URL(r.scope).pathname : "/";
+    document.getElementById("logo").src = base + "brand/classpulse-app-icon.svg";
+  });
+</script>
 </body>
 </html>

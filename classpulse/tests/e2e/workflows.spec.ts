@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { openApp, reload } from "./helpers";
 
 test("attendance is saved to the correct date and class", async ({ page }) => {

@@ -1,5 +1,7 @@
 "use client";
 
+import { studentHref } from "@/lib/paths";
+
 import * as React from "react";
 import Link from "next/link";
 import { ExternalLink, NotebookPen, SlidersHorizontal } from "lucide-react";
@@ -122,7 +124,7 @@ export function StudentActionPanel({ student, classId, onDone, defaultTab = "pos
           {student.preferred_name && <p className="text-xs text-muted-foreground">{student.first_name} {student.last_name}</p>}
         </div>
         <Button asChild variant="ghost" size="sm">
-          <Link href={`/students/${student.id}`}>
+          <Link href={studentHref(student.id)}>
             Profile <ExternalLink />
           </Link>
         </Button>

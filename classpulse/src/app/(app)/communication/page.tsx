@@ -1,5 +1,7 @@
 "use client";
 
+import { studentHref } from "@/lib/paths";
+
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -156,7 +158,7 @@ function ContactLog({ defaultStudent }: { defaultStudent?: string }) {
                   <div className="min-w-0 flex-1 text-sm">
                     <p className="font-medium">
                       {s ? (
-                        <Link href={`/students/${s.id}`} className="hover:underline">
+                        <Link href={studentHref(s.id)} className="hover:underline">
                           {displayName(s)}
                         </Link>
                       ) : (

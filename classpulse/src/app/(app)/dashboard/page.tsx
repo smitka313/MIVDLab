@@ -1,5 +1,7 @@
 "use client";
 
+import { classHref, studentHref } from "@/lib/paths";
+
 import * as React from "react";
 import Link from "next/link";
 import { BarChart3, CalendarCheck, ClipboardList, LayoutDashboard, LifeBuoy, MessageSquare, NotebookPen, Plus, Presentation, Settings2, Sparkles, ThumbsUp, TriangleAlert, Users } from "lucide-react";
@@ -133,7 +135,7 @@ function QuickActions() {
   const { current } = useCurrentClass();
   const [reminder, setReminder] = React.useState(false);
   const actions = [
-    { label: "Open current class", icon: Presentation, href: current ? `/classroom/${current.id}` : "/classroom" },
+    { label: "Open current class", icon: Presentation, href: current ? classHref(current.id) : "/classroom" },
     { label: "Record observation", icon: Plus, onClick: () => quickLog() },
     { label: "Take attendance", icon: CalendarCheck, href: "/attendance" },
     { label: "Add student note", icon: NotebookPen, onClick: () => quickLog({ tab: "note" }) },
@@ -220,7 +222,7 @@ function Schedule() {
               const col = colorClasses(c.color);
               return (
                 <li key={c.id}>
-                  <Link href={`/classroom/${c.id}`} className={cn("flex items-center gap-3 rounded-lg border p-3 hover:bg-secondary/50", now?.id === c.id && "border-brand bg-accent/50")}>
+                  <Link href={classHref(c.id)} className={cn("flex items-center gap-3 rounded-lg border p-3 hover:bg-secondary/50", now?.id === c.id && "border-brand bg-accent/50")}>
                     <span aria-hidden className={cn("h-10 w-1.5 rounded-full", col.dot)} />
                     <span className="w-24 shrink-0 text-sm tabular-nums text-muted-foreground">{c.start_time ? `${formatTime(c.start_time)}` : `Period ${c.period}`}</span>
                     <span className="min-w-0 flex-1">
@@ -325,7 +327,7 @@ function RecentActivity() {
                   </Badge>
                   <span className="min-w-0 flex-1 truncate">
                     {s && (
-                      <Link href={`/students/${s.id}`} className="font-medium hover:underline">
+                      <Link href={studentHref(s.id)} className="font-medium hover:underline">
                         {displayName(s)}
                       </Link>
                     )}{" "}

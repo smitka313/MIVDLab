@@ -1,4 +1,5 @@
 "use client";
+import { withBase } from "@/lib/paths";
 
 import * as React from "react";
 import Link from "next/link";
@@ -20,7 +21,7 @@ type Values = z.infer<typeof schema>;
 
 /** Only allow same-site relative redirects after sign-in (prevents open redirects). */
 export function safeNext(next: string | null | undefined) {
-  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/dashboard";
+  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") && !next.startsWith("/auth") && !next.startsWith("/login") ? next : "/dashboard/";
 }
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
@@ -28,6 +29,16 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [magic, setMagic] = React.useState(false);
   const { register, handleSubmit, formState, setError } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: "", password: "", display_name: "" } });
   const e = formState.errors;
+
+  // Already signed in? Go straight to the app (replaces the old server-side redirect).
+  React.useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    getBrowserSupabase()
+      .auth.getSession()
+      .then(({ data }) => {
+        if (data.session) window.location.replace(withBase(safeNext(new URLSearchParams(window.location.search).get("next"))));
+      });
+  }, []);
 
   if (!isSupabaseConfigured) {
     return (
@@ -50,7 +61,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setMessage(null);
     const sb = getBrowserSupabase();
     const next = safeNext(new URLSearchParams(window.location.search).get("next"));
-    const redirect = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+    const redirect = `${window.location.origin}${withBase("/auth/callback/")}?next=${encodeURIComponent(next)}`;
     if (magic) {
       const { error } = await sb.auth.signInWithOtp({ email: v.email, options: { emailRedirectTo: redirect, shouldCreateUser: mode === "signup" } });
       if (error) setMessage({ kind: "error", text: error.message });
@@ -65,11 +76,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       const { data, error } = await sb.auth.signUp({ email: v.email, password: v.password, options: { emailRedirectTo: redirect, data: { display_name: v.display_name.trim() } } });
       if (error) setMessage({ kind: "error", text: error.message });
       else if (!data.session) setMessage({ kind: "info", text: "Check your email to confirm your account, then sign in." });
-      else window.location.assign(next);
+      else window.location.assign(withBase(next));
     } else {
       const { error } = await sb.auth.signInWithPassword({ email: v.email, password: v.password });
       if (error) setMessage({ kind: "error", text: error.message === "Invalid login credentials" ? "Email or password is incorrect." : error.message });
-      else window.location.assign(next);
+      else window.location.assign(withBase(next));
     }
   });
 

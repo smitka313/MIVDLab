@@ -1,5 +1,7 @@
 "use client";
 
+import { studentHref } from "@/lib/paths";
+
 import * as React from "react";
 import Link from "next/link";
 import { CalendarCheck, CheckCheck, ChevronLeft, ChevronRight, Download, Info } from "lucide-react";
@@ -143,7 +145,7 @@ function TakeAttendance({ classId, date, setDate }: { classId: string; date: str
                 return (
                   <TR key={s.id}>
                     <TD className="font-medium">
-                      <Link href={`/students/${s.id}`} className="hover:underline">
+                      <Link href={studentHref(s.id)} className="hover:underline">
                         {displayName(s)}
                       </Link>
                     </TD>
@@ -333,7 +335,7 @@ function ByStudent({ classId }: { classId: string }) {
           {rows.map(({ s, sum }) => (
             <TR key={s.id}>
               <TD className="font-medium">
-                <Link href={`/students/${s.id}`} className="hover:underline">
+                <Link href={studentHref(s.id)} className="hover:underline">
                   {displayName(s)}
                 </Link>
               </TD>

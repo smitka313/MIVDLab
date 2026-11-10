@@ -1,4 +1,5 @@
 "use client";
+import { withBase } from "@/lib/paths";
 
 import * as React from "react";
 
@@ -11,7 +12,7 @@ interface BeforeInstallPromptEvent extends Event {
 export function ServiceWorkerRegistration() {
   React.useEffect(() => {
     if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).catch(() => {
+    navigator.serviceWorker.register(withBase("/sw.js"), { scope: withBase("/"), updateViaCache: "none" }).catch(() => {
       /* installability is a progressive enhancement; ignore failures */
     });
   }, []);

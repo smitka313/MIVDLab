@@ -1,19 +1,21 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { RootProviders } from "@/components/providers/root-providers";
+import { withBase } from "@/lib/paths";
 
 export const metadata: Metadata = {
   title: { default: "ClassPulse", template: "%s · ClassPulse" },
   description: "Better classroom management. Stronger student support. Less paperwork.",
   robots: { index: false, follow: false },
   applicationName: "ClassPulse",
+  referrer: "strict-origin-when-cross-origin",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "48x48" },
-      { url: "/brand/classpulse-app-icon.svg", type: "image/svg+xml" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: withBase("/favicon.ico"), sizes: "48x48" },
+      { url: withBase("/brand/classpulse-app-icon.svg"), type: "image/svg+xml" },
+      { url: withBase("/icon-192.png"), sizes: "192x192", type: "image/png" },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+    apple: [{ url: withBase("/apple-touch-icon.png"), sizes: "180x180" }],
   },
   appleWebApp: { capable: true, title: "ClassPulse", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },

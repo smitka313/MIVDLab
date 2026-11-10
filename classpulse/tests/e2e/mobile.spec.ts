@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { openApp } from "./helpers";
 
 test("mobile navigation and quick log work on a phone", async ({ page }) => {

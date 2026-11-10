@@ -1,5 +1,7 @@
 "use client";
 
+import { studentHref } from "@/lib/paths";
+
 import * as React from "react";
 import Link from "next/link";
 import { Archive, ArchiveRestore, Download, MoreHorizontal, Pencil, Plus, Search, Trash2, Upload, Users } from "lucide-react";
@@ -220,7 +222,7 @@ export default function StudentsPage() {
                     <Checkbox aria-label={`Select ${displayName(s)}`} checked={selected.has(s.id)} onChange={(e) => setSelected((sel) => { const n = new Set(sel); if (e.target.checked) n.add(s.id); else n.delete(s.id); return n; })} />
                   </TD>
                   <TD>
-                    <Link href={`/students/${s.id}`} className="flex items-center gap-2.5 font-medium hover:underline">
+                    <Link href={studentHref(s.id)} className="flex items-center gap-2.5 font-medium hover:underline">
                       <StudentAvatar student={s} className="size-8 text-xs" />
                       <span>
                         {displayName(s)}

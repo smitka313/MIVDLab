@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:db": "vitest run --config vitest.db.config.mts",
     "test:e2e": "playwright test --trace off",
-    "test:all": "npm run typecheck && npm run test && npm run test:db && npm run test:e2e"
+    "test:all": "npm run typecheck && npm run test && npm run test:db && npm run test:e2e",
+    "preview": "node scripts/serve-static.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.5",

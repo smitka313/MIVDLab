@@ -1,8 +1,10 @@
 "use client";
 
+import { planHref } from "@/lib/paths";
+
 import * as React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, CalendarCheck, LifeBuoy, MessageSquare, NotebookPen, Pencil, Plus, ThumbsUp, TriangleAlert, Sparkles, Users, Trash2 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader } from "@/components/app/app-shell";
@@ -32,7 +34,15 @@ import { addDays, cn, countBy, displayName, isoDateOf, toISODate } from "@/lib/u
 const TYPE_LABELS: Record<EventType, string> = { observation: "Observations", attendance: "Attendance", note: "Notes", intervention: "Interventions", communication: "Communication" };
 
 export default function StudentProfilePage() {
-  const { studentId } = useParams<{ studentId: string }>();
+  return (
+    <React.Suspense fallback={<LoadingState />}>
+      <StudentProfilePageInner />
+    </React.Suspense>
+  );
+}
+
+function StudentProfilePageInner() {
+  const studentId = useSearchParams().get("id") ?? "";
   const status = useTables("students", "classes", "enrollments", "observations", "attendance_records", "attendance_statuses", "student_notes", "intervention_plans", "intervention_progress", "communications", "reminders");
   const students = useRows("students");
   const enrollments = useRows("enrollments");
@@ -94,7 +104,7 @@ export default function StudentProfilePage() {
   const followUps = [
     ...reminders.rows.filter((r) => r.student_id === studentId && !r.completed_at).map((r) => ({ id: r.id, title: r.title, date: r.due_date, href: "/dashboard" })),
     ...myComms.filter((c) => c.status === "follow_up_pending").map((c) => ({ id: c.id, title: `Follow up: ${PURPOSE_LABELS[c.purpose]}`, date: c.follow_up_date, href: "/communication" })),
-    ...myPlans.filter((p) => (p.status === "active" || p.status === "under_review") && p.review_date).map((p) => ({ id: p.id, title: `Review plan: ${p.target_behavior}`, date: p.review_date, href: `/interventions/${p.id}` })),
+    ...myPlans.filter((p) => (p.status === "active" || p.status === "under_review") && p.review_date).map((p) => ({ id: p.id, title: `Review plan: ${p.target_behavior}`, date: p.review_date, href: planHref(p.id) })),
   ].sort((a, b) => (a.date ?? "9999").localeCompare(b.date ?? "9999"));
 
   const inFilter = (iso: string, cid: string | null) => {
@@ -222,7 +232,7 @@ export default function StudentProfilePage() {
                   <ul className="grid gap-2">
                     {activePlans.map((p) => (
                       <li key={p.id}>
-                        <Link href={`/interventions/${p.id}`} className="flex items-center justify-between gap-2 rounded-lg border p-2.5 text-sm hover:bg-secondary/50">
+                        <Link href={planHref(p.id)} className="flex items-center justify-between gap-2 rounded-lg border p-2.5 text-sm hover:bg-secondary/50">
                           <span>
                             <span className="font-medium">{p.target_behavior}</span>
                             <span className="block text-xs text-muted-foreground">{p.strategy_name} · review {fmt.date(p.review_date)}</span>
@@ -467,7 +477,7 @@ export default function StudentProfilePage() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <CardTitle>
-                          <Link href={`/interventions/${p.id}`} className="hover:underline">
+                          <Link href={planHref(p.id)} className="hover:underline">
                             {p.target_behavior}
                           </Link>
                         </CardTitle>

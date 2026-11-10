@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+// page.goto here receives the fixture page, which adds the base path.
 
 /** Open the app (demo mode) and wait for the shell. */
 export async function openApp(page: Page, path = "/dashboard") {

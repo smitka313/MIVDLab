@@ -1,8 +1,10 @@
 "use client";
 
+import { studentHref } from "@/lib/paths";
+
 import * as React from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowLeft, LifeBuoy, Pencil, Trash2 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Legend, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader } from "@/components/app/app-shell";
@@ -31,7 +33,15 @@ const NEXT: Record<InterventionStatus, InterventionStatus[]> = {
 };
 
 export default function PlanPage() {
-  const { planId } = useParams<{ planId: string }>();
+  return (
+    <React.Suspense fallback={<LoadingState />}>
+      <PlanPageInner />
+    </React.Suspense>
+  );
+}
+
+function PlanPageInner() {
+  const planId = useSearchParams().get("id") ?? "";
   const router = useRouter();
   const status = useTables("intervention_plans", "intervention_progress", "intervention_strategies", "students", "classes", "enrollments", "observations");
   const plans = useRows("intervention_plans");
@@ -87,7 +97,7 @@ export default function PlanPage() {
         description={
           <span className="flex flex-wrap items-center gap-2">
             {student && (
-              <Link href={`/students/${student.id}`} className="font-medium hover:underline">
+              <Link href={studentHref(student.id)} className="font-medium hover:underline">
                 {displayName(student)}
               </Link>
             )}

@@ -1,8 +1,10 @@
 "use client";
 
+import { studentHref } from "@/lib/paths";
+
 import * as React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, LayoutGrid, Pencil, Plus, Presentation, Upload, UserMinus, UserPlus, Users } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { useAction, useData, useRows, useStore, useTables } from "@/components/providers/data-provider";
@@ -24,7 +26,15 @@ import type { ClassSection, Student } from "@/lib/types";
 import { byName, displayName, formatTime, toISODate } from "@/lib/utils";
 
 export default function ClassPage() {
-  const { classId } = useParams<{ classId: string }>();
+  return (
+    <React.Suspense fallback={<LoadingState />}>
+      <ClassPageInner />
+    </React.Suspense>
+  );
+}
+
+function ClassPageInner() {
+  const classId = useSearchParams().get("id") ?? "";
   const status = useTables("classes", "students", "enrollments", "seating_layouts", "seats", "attendance_records", "attendance_statuses", "observations");
   const classes = useRows("classes");
   const cls = classes.rows.find((c) => c.id === classId);
@@ -155,7 +165,7 @@ function ClassRoster({ cls, roster }: { cls: ClassSection; roster: Student[] }) 
               {roster.map((s) => (
                 <TR key={s.id}>
                   <TD>
-                    <Link href={`/students/${s.id}`} className="flex items-center gap-2 font-medium hover:underline">
+                    <Link href={studentHref(s.id)} className="flex items-center gap-2 font-medium hover:underline">
                       <StudentAvatar student={s} className="size-7 text-[10px]" />
                       {displayName(s)}
                     </Link>

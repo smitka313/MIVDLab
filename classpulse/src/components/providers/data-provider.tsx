@@ -1,4 +1,5 @@
 "use client";
+import { withBase, withoutBase } from "@/lib/paths";
 
 import * as React from "react";
 import { toast } from "sonner";
@@ -151,7 +152,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           const sb = getBrowserSupabase();
           const { data, error } = await sb.auth.getUser();
           if (error || !data.user) {
-            window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+            window.location.assign(withBase(`/login/?next=${encodeURIComponent(withoutBase(window.location.pathname) + window.location.search)}`));
             return;
           }
           adapter = new SupabaseAdapter(sb, data.user.id);

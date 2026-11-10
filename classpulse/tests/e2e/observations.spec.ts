@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { openApp, reload } from "./helpers";
 
 test("select a student in live mode, record an observation, and find it after refresh on their profile", async ({ page }) => {

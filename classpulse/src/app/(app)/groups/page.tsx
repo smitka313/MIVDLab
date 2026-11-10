@@ -1,5 +1,7 @@
 "use client";
 
+import { studentHref } from "@/lib/paths";
+
 import * as React from "react";
 import Link from "next/link";
 import { Copy, Plus, Printer, Shuffle, Trash2, UsersRound } from "lucide-react";
@@ -319,7 +321,7 @@ function GroupBoard({ cls, set }: { cls: ClassSection; set: GroupSet }) {
                     if (!s) return null;
                     return (
                       <li key={m.id} className="flex flex-wrap items-center gap-1.5 text-sm">
-                        <Link href={`/students/${s.id}`} className="min-w-0 flex-1 truncate font-medium hover:underline">
+                        <Link href={studentHref(s.id)} className="min-w-0 flex-1 truncate font-medium hover:underline">
                           {displayName(s)}
                         </Link>
                         <Select aria-label={`Role for ${displayName(s)}`} value={m.role_id ?? ""} onChange={(e) => run(() => store.update("group_memberships", m.id, { role_id: e.target.value || null }), { silent: true })} className="h-7 w-auto px-1 text-xs print:border-0">

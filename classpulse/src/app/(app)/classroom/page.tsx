@@ -1,5 +1,7 @@
 "use client";
 
+import { classHref } from "@/lib/paths";
+
 import * as React from "react";
 import Link from "next/link";
 import { Archive, ArchiveRestore, Clock, MapPin, MoreHorizontal, Pencil, Plus, Presentation, Trash2, Users } from "lucide-react";
@@ -137,7 +139,7 @@ function ClassCard({ c, count, live, onEdit, onArchive, onDelete }: { c: ClassSe
           <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground">Period {c.period}</p>
             <h2 className="truncate text-lg font-semibold">
-              <Link href={`/classroom/${c.id}`} className="after:absolute after:inset-0 focus-visible:outline-none">
+              <Link href={classHref(c.id)} className="after:absolute after:inset-0 focus-visible:outline-none">
                 {c.course_name}
               </Link>
             </h2>

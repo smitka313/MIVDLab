@@ -1,5 +1,7 @@
 "use client";
 
+import { studentHref } from "@/lib/paths";
+
 import * as React from "react";
 import Link from "next/link";
 import { Flag, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -53,7 +55,7 @@ export function ObservationList({ items, showStudent = true, pageSize = 25, empt
                 <p className="text-sm">
                   {showStudent && s && (
                     <>
-                      <Link href={`/students/${s.id}`} className="font-medium hover:underline">
+                      <Link href={studentHref(s.id)} className="font-medium hover:underline">
                         {displayName(s)}
                       </Link>
                       {" — "}

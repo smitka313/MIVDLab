@@ -14,7 +14,8 @@ ClassPulse is a classroom management web app for high school teachers (grades 9�
 - [Install as an app](#install-as-an-app)
 - [Branding](#branding)
 - [Running with Supabase (real accounts)](#running-with-supabase-real-accounts)
-- [Deploying to Vercel](#deploying-to-vercel)
+- [Hosting on GitHub Pages (free)](#hosting-on-github-pages-free)
+- [Other hosts (Vercel, Netlify, any web server)](#other-hosts-vercel-netlify-any-web-server)
 - [Tests](#tests)
 - [What's implemented](#whats-implemented)
 - [Architecture](#architecture)
@@ -29,7 +30,8 @@ ClassPulse is a classroom management web app for high school teachers (grades 9�
 Requirements: Node.js 20.9+ (22 recommended).
 
 ```bash
-cd classpulse        # the app folder (repository root in the ClassPulse repo)
+git clone https://github.com/smitka313/classpulse.git
+cd classpulse
 npm install
 npm run dev
 # open http://localhost:3000
@@ -91,7 +93,7 @@ The SVGs are vector redraws of the supplied artwork, so they stay crisp at any s
    - `supabase/migrations/20261110000300_storage.sql` — private `student-photos` bucket and its policies
 
    With the Supabase CLI: `supabase link --project-ref <ref>` then `supabase db push`. Or paste each file into the SQL editor.
-3. **Configure auth** (Authentication → URL configuration): set the Site URL to your app URL and add `<your-url>/auth/callback` to the redirect URLs. Email/password and email-link sign-in are both supported. For district SSO see [Extending](#extending-classpulse).
+3. **Configure auth** (Authentication → URL configuration): set the Site URL to your app URL (for GitHub Pages: `https://<user>.github.io/<repo>/`) and add `<your-url>/auth/callback/` to the redirect URLs. Email/password and email-link sign-in are both supported. For district SSO see [Extending](#extending-classpulse).
 4. **Set environment variables**: copy `.env.example` to `.env.local` and fill in `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 5. `npm run dev`, then create an account at `/signup`.
 
@@ -99,13 +101,47 @@ New accounts start empty, apart from editable starter configuration: behavior ca
 
 > I didn't have access to a live Supabase project while building this. The schema, RLS policies and database functions were tested against PostgreSQL 16 with a small auth shim (`supabase/tests/auth_shim.sql`; see [Tests](#tests)). The browser client (`src/lib/data/supabase-adapter.ts`) is straightforward supabase-js, but it hasn't been run against a hosted project. Test sign-up, sign-in, data entry and photo upload on a staging project before relying on it.
 
-## Deploying to Vercel
+## Hosting on GitHub Pages (free)
 
-1. Import the repository in Vercel. If the app sits in a subfolder (as in the MIVDLab repository), set **Root Directory** to that folder. In the standalone ClassPulse repository it's the repository root.
-2. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Project → Settings → Environment Variables. If you leave them out, the deployment runs in demo mode.
-3. Deploy. Add the production URL's `/auth/callback` to Supabase's redirect URLs.
+ClassPulse builds to plain static files. All data work happens in the browser and is protected by Supabase row-level security, so GitHub Pages can host it with no server. The repository includes `.github/workflows/deploy-pages.yml`, which tests, builds and publishes the site on every push to `main`.
 
-No server secrets are needed. The service-role key is never used by the app and must not be added to the frontend.
+**One-time setup**
+
+1. In the repository on GitHub, go to **Settings → Pages → Build and deployment** and set **Source: GitHub Actions**.
+2. Push to `main`, or run **Actions → Deploy to GitHub Pages → Run workflow**.
+3. Open `https://<user>.github.io/<repo>/`, for example `https://smitka313.github.io/classpulse/`. Teachers can install it as an app from there.
+
+This gives you **demo mode** (fictional data in each browser). To turn on **real accounts**, also:
+
+4. Set up Supabase as described in [Running with Supabase](#running-with-supabase-real-accounts). Use the Pages URL as the Site URL, and add `https://<user>.github.io/<repo>/auth/callback/` as a redirect URL.
+5. In GitHub: **Settings → Secrets and variables → Actions → Variables**, add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. They are public by design, so plain variables are fine. **Never** add the service-role key.
+6. Re-run the deploy workflow.
+
+**Notes**
+
+- The workflow detects the sub-path (`/<repo>`) automatically. With a custom domain or a `<user>.github.io` repository it builds for the root instead.
+- GitHub Pages is free for public repositories. Private repositories need a paid GitHub plan for Pages. The site URL is public either way, but records are only reachable after signing in.
+- GitHub Pages can't send custom security headers. The app sets a strict referrer policy in the page, and Supabase enforces all data access. If your district requires headers such as `X-Frame-Options`, use a host that supports them (see `vercel.json`).
+- `.github/workflows/ci.yml` runs every test suite on each push and pull request: types, lint, unit, database security against Postgres 16, and end-to-end.
+
+**Preview the Pages build locally**
+
+```bash
+NEXT_PUBLIC_BASE_PATH=/classpulse npm run build   # writes ./out
+NEXT_PUBLIC_BASE_PATH=/classpulse npm run preview # http://localhost:3200/classpulse/
+```
+
+`scripts/serve-static.mjs` serves `./out` the way GitHub Pages does: trailing-slash redirects, `404.html`, and the sub-path.
+
+## Other hosts (Vercel, Netlify, any web server)
+
+`npm run build` writes a static site to `out/` that any static host can serve. With no base path it's served from the domain root.
+
+- **Vercel:** import the repository. `vercel.json` sets the output folder and adds security headers. Add the two `NEXT_PUBLIC_SUPABASE_*` environment variables for real accounts.
+- **Netlify / Cloudflare Pages:** build command `npm run build`, publish directory `out`.
+- **School web server:** copy the contents of `out/` to a folder. If it isn't the site root, build with `NEXT_PUBLIC_BASE_PATH=/that-folder`.
+
+In every case, add `<your-url>/auth/callback/` to Supabase's redirect URLs.
 
 ## Tests
 
@@ -119,7 +155,7 @@ npm run build && npm run test:e2e   # Playwright end-to-end, desktop + phone —
 
 `test:db` needs a PostgreSQL 15+ superuser connection in `TEST_DATABASE_URL`, for example `postgres://postgres:postgres@localhost:5432/postgres`. It creates a temporary database, applies the auth shim and all migrations, then checks behavior as the real `authenticated` and `anon` roles. Without the variable the suite is skipped.
 
-`test:e2e` starts `next start` on port 3200 in demo mode. Every test gets a fresh browser profile and therefore a fresh demo classroom. Playwright 1.63 is pinned; run `npx playwright install chromium` if you don't already have a matching browser.
+`test:e2e` builds the static export with base path `/classpulse` (demo mode) and serves it with `scripts/serve-static.mjs` on port 3200, the same way GitHub Pages serves it. Set `E2E_SKIP_BUILD=1` to reuse an existing `out/`. Every test gets a fresh browser profile and therefore a fresh demo classroom. Playwright 1.63 is pinned; run `npx playwright install chromium` if you don't already have a matching browser.
 
 How the acceptance criteria are covered:
 
@@ -173,8 +209,7 @@ classpulse/
 │   ├── app/
 │   │   ├── (app)/             # authenticated app: dashboard, classroom, students, …
 │   │   ├── (auth)/            # login, signup
-│   │   └── auth/callback/     # email-link / confirmation code exchange
-│   ├── proxy.ts               # session refresh + sign-in redirect + security headers (Next 16 "proxy")
+│   │   └── auth/callback/     # email-link / confirmation code exchange (in the browser)
 │   ├── components/
 │   │   ├── ui/                # shadcn/ui-style primitives on Radix (button, dialog, tabs, …)
 │   │   ├── app/app-shell.tsx  # sidebar, top bar, period switcher, mobile nav
@@ -196,7 +231,7 @@ classpulse/
 
 **Stack:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Radix primitives in the shadcn/ui style, Lucide icons, Supabase (Postgres, Auth, Storage), Recharts, React Hook Form + Zod, Papaparse, Sonner, Vitest, Playwright.
 
-Why client-side rendering: classroom data is private and per-teacher, so there's nothing useful to pre-render or cache on the server. Fetching straight from Postgres with the user's JWT keeps RLS as the single authorization layer. Each table is loaded once per session and cached, which keeps Live Classroom instant. Supabase reads are paged in 1,000-row chunks. This suits a teacher's own records (thousands to tens of thousands of rows a year). See the limitations section for scaling further.
+Why client-side rendering: classroom data is private and per-teacher, so there's nothing useful to pre-render or cache on the server. Fetching straight from Postgres with the user's JWT keeps RLS as the single authorization layer. Each table is loaded once per session and cached, which keeps Live Classroom instant. Supabase reads are paged in 1,000-row chunks. This suits a teacher's own records (thousands to tens of thousands of rows a year). See the limitations section for scaling further. It's also why the whole app ships as static files and runs on GitHub Pages.
 
 ## Security and privacy design
 
@@ -209,7 +244,7 @@ Why client-side rendering: classroom data is private and per-teacher, so there's
 - **Student photos** live in a **private** bucket under `<teacher-id>/…`, are resized to 256 px in the browser before upload, and are shown only through short-lived signed URLs.
 - **Minimal data.** No demographic, disability or medical fields. Private notes are kept separate from shareable records.
 - **Input handling.** Zod validation in forms plus database `CHECK` constraints and length limits. React escaping. CSV exports neutralize spreadsheet formula injection. CSV import enforces size and row limits and rejects binary and control characters. Post-login redirects only go to same-site paths. `mailto:` links accept only plain email addresses.
-- **Headers.** `X-Frame-Options: DENY`, `nosniff`, a strict referrer policy and a restrictive permissions policy are set in `proxy.ts`. `poweredByHeader` is off.
+- **Headers.** A strict referrer policy is set in the page on every host. On hosts that support headers, `vercel.json` adds `X-Frame-Options: DENY`, `nosniff` and a restrictive permissions policy. GitHub Pages can't send custom headers.
 - **No third-party AI.** No student data is sent to AI services. Message drafting is template-based and done locally.
 - **Secrets.** Only `NEXT_PUBLIC_SUPABASE_URL` and the anon key reach the browser. The service-role key is never referenced.
 
@@ -217,7 +252,7 @@ Why client-side rendering: classroom data is private and per-teacher, so there's
 
 - **New table:** add it to a migration (with `teacher_id`, `unique (id, teacher_id)`, composite FKs and the RLS loop list in `security.sql`), then to `types.ts` (`Tables`, `TABLE_ORDER`) and `schema-meta.ts`. The schema-sync unit test fails if the SQL and the metadata disagree.
 - **District SSO:** enable SAML/OIDC in Supabase Auth (Google Workspace, Microsoft Entra, Clever via OIDC) and add a provider button in `src/features/auth-form.tsx` using `signInWithSSO` / `signInWithOAuth`. No schema change is needed.
-- **SIS integration:** implement `SisConnector` in `src/lib/integrations/sis.ts` as a **server-side** route with its own credentials (for example OneRoster 1.2), and register it in `SIS_CONNECTORS`. The UI states that no SIS is connected until one actually is.
+- **SIS integration:** implement `SisConnector` (`src/lib/integrations/sis.ts`) in a **server-side** component with its own credentials, such as a Supabase Edge Function using OneRoster 1.2. The static site must never hold SIS credentials. Then register it in `SIS_CONNECTORS`. The UI states that no SIS is connected until one actually is.
 - **Multi-teacher / admin:** `schools`, `profiles.role`, `data_access_grants` and the `can_read()` policy helper are the extension points. Add new grant scopes or a school-admin branch to `can_read()`.
 - **AI-assisted drafting or summaries:** only after district approval. Add a server route that requires an explicit per-use opt-in, de-identifies input, and calls an approved provider. Keep the existing "teacher reviews before sending" step.
 - **Notifications:** reminders are in-app only. Email or push could be added with a scheduled Supabase Edge Function that reads `reminders`.
