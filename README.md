@@ -60,3 +60,7 @@ Work is autosaved in the browser on the device being used. To move to another co
 
 - The speed index is an estimate calculated from acceleration, not a measured speed. Use stopwatch and lap times as the main evidence; the app includes an optional tape-measure check of speed index accuracy.
 - Hosting is optional: the page can be opened straight from a downloaded copy, or served from any static host such as GitHub Pages.
+
+## ClassPulse
+
+The [`classpulse/`](classpulse/) folder contains **ClassPulse**, a separate classroom management web app for high school teachers (Next.js + Supabase). It is independent of the telemetry lab above. See [`classpulse/README.md`](classpulse/README.md) for setup, demo mode, tests and deployment.

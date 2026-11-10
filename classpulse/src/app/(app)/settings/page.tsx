@@ -474,7 +474,7 @@ function DataSection() {
                   const ok = await confirm({ title: "Delete your account?", description: "Your account and every record it owns will be permanently deleted. This cannot be undone.", confirmLabel: "Delete my account", destructive: true, typeToConfirm: "DELETE MY ACCOUNT" });
                   if (ok) {
                     const done = await run(async () => { await adapter.deleteAccount(); return true; }, { success: "Account deleted" });
-                    if (done) window.location.href = "/login";
+                    if (done) window.location.assign("/login");
                   }
                 }}
               >

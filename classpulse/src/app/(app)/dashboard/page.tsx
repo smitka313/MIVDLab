@@ -51,7 +51,7 @@ export default function DashboardPage() {
         }
       />
       <Onboarding />
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {show("quick_actions") && <QuickActions />}
         {show("overview") && <Overview />}
         {show("schedule") && <Schedule />}

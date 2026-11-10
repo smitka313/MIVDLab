@@ -50,26 +50,31 @@ const signedCache = new Map<string, { url: string; exp: number }>();
 export function usePhotoUrl(student: Pick<Student, "photo_path"> | null | undefined) {
   const { adapter } = useData();
   const path = student?.photo_path ?? null;
-  const [url, setUrl] = React.useState<string | null>(() => (path?.startsWith("data:") ? path : null));
+  const [signed, setSigned] = React.useState<{ path: string; url: string | null } | null>(null);
+  const needsSigning = !!path && !path.startsWith("data:") && adapter.mode === "supabase";
   React.useEffect(() => {
-    if (!path) return setUrl(null);
-    if (path.startsWith("data:")) return setUrl(path);
-    if (adapter.mode !== "supabase") return setUrl(null);
+    if (!needsSigning || !path) return;
     const cached = signedCache.get(path);
-    if (cached && cached.exp > Date.now()) return setUrl(cached.url);
     let cancelled = false;
-    getBrowserSupabase()
-      .storage.from(BUCKET)
-      .createSignedUrl(path, 600)
-      .then(({ data }: { data: { signedUrl: string } | null }) => {
-        if (data?.signedUrl) signedCache.set(path, { url: data.signedUrl, exp: Date.now() + 540_000 });
-        if (!cancelled) setUrl(data?.signedUrl ?? null);
-      });
+    const done = (url: string | null) => !cancelled && setSigned({ path, url });
+    if (cached && cached.exp > Date.now()) {
+      void Promise.resolve().then(() => done(cached.url));
+    } else {
+      getBrowserSupabase()
+        .storage.from(BUCKET)
+        .createSignedUrl(path, 600)
+        .then(({ data }: { data: { signedUrl: string } | null }) => {
+          if (data?.signedUrl) signedCache.set(path, { url: data.signedUrl, exp: Date.now() + 540_000 });
+          done(data?.signedUrl ?? null);
+        });
+    }
     return () => {
       cancelled = true;
     };
-  }, [path, adapter.mode]);
-  return url;
+  }, [path, needsSigning]);
+  if (!path) return null;
+  if (path.startsWith("data:")) return path;
+  return signed?.path === path ? signed.url : null;
 }
 
 export function StudentAvatar({ student, className }: { student: Student; className?: string }) {

@@ -79,7 +79,8 @@ export function LiveClassroom({ cls, roster }: { cls: ClassSection; roster: Stud
   const markAll = useMarkAllPresent();
   const classLayouts = layouts.rows.filter((l) => l.class_id === cls.id);
   const layout = classLayouts.find((l) => l.id === layoutId) ?? classLayouts.find((l) => l.id === cls.default_layout_id) ?? classLayouts[0];
-  const layoutSeats = React.useMemo(() => seats.rows.filter((s) => s.layout_id === layout?.id), [seats.rows, layout?.id]);
+  const activeLayoutId = layout?.id;
+  const layoutSeats = seats.rows.filter((s) => s.layout_id === activeLayoutId);
   const studentMap = React.useMemo(() => new Map(roster.map((s) => [s.id, s])), [roster]);
   const unseated = roster.filter((s) => !layoutSeats.some((x) => x.student_id === s.id));
 

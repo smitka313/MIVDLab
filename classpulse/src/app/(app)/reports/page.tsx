@@ -206,7 +206,7 @@ function ReportView({ doc }: { doc: ReportDoc }) {
               {s.type === "list" && (s.items.length ? <ul className="list-disc pl-5 text-sm">{s.items.map((it, j) => <li key={j}>{it}</li>)}</ul> : <p className="text-sm text-muted-foreground">{s.empty}</p>)}
               {s.type === "table" &&
                 (s.rows.length ? (
-                  <div className="overflow-x-auto">
+                  <div className="relative overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="border-b">

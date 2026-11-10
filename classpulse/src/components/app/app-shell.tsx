@@ -49,15 +49,15 @@ function isActive(path: string, href: string) {
   return path === href || path.startsWith(`${href}/`);
 }
 
-function Brand({ className }: { className?: string }) {
+function Brand({ className, compact }: { className?: string; compact?: boolean }) {
   return (
-    <Link href="/dashboard" className={cn("flex items-center gap-2 font-semibold tracking-tight", className)}>
+    <Link href="/dashboard" aria-label="ClassPulse home" className={cn("flex shrink-0 items-center gap-2 font-semibold tracking-tight", className)}>
       <span aria-hidden className="grid size-8 place-items-center rounded-lg bg-brand text-brand-foreground">
         <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 12h4l2-5 4 10 2-5h6" />
         </svg>
       </span>
-      ClassPulse
+      <span className={compact ? "hidden sm:inline" : undefined}>ClassPulse</span>
     </Link>
   );
 }
@@ -104,7 +104,7 @@ function PeriodSwitcher() {
   const { current, setCurrent, classes } = useCurrentClass();
   if (!classes.length) return null;
   return (
-    <Select aria-label="Current class period" value={current?.id ?? ""} onChange={(e) => setCurrent(e.target.value)} className="h-9 w-auto max-w-[14rem] sm:max-w-xs">
+    <Select aria-label="Current class period" value={current?.id ?? ""} onChange={(e) => setCurrent(e.target.value)} className="h-9 w-auto min-w-0 max-w-[11rem] sm:max-w-xs">
       {classes.map((c) => (
         <option key={c.id} value={c.id}>
           {classLabel(c)}
@@ -138,7 +138,7 @@ function SignOut() {
       type="button"
       onClick={async () => {
         await getBrowserSupabase().auth.signOut();
-        window.location.href = "/login";
+        window.location.assign("/login");
       }}
       className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-muted hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
     >
@@ -177,8 +177,8 @@ function Shell({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open navigation" onClick={() => setMenuOpen(true)}>
               <Menu />
             </Button>
-            <Brand className="lg:hidden" />
-            <div className="ml-auto flex items-center gap-2">
+            <Brand className="lg:hidden" compact />
+            <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2">
               <PeriodSwitcher />
               <Button variant="brand" onClick={() => quickLog()} className="hidden sm:inline-flex" title="Quick log (L)">
                 <Plus /> Quick log

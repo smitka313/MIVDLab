@@ -151,7 +151,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           const sb = getBrowserSupabase();
           const { data, error } = await sb.auth.getUser();
           if (error || !data.user) {
-            window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+            window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
             return;
           }
           adapter = new SupabaseAdapter(sb, data.user.id);

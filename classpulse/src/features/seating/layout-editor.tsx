@@ -11,7 +11,6 @@ import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/states";
 import { useConfirm } from "@/components/ui/confirm";
-import { Badge } from "@/components/ui/badge";
 import { SeatingChart } from "./seating-chart";
 import { FIXTURE_SIZES, autoAssign, canPlace, findFreeSpot, moveStudent, templateItems } from "./layout-logic";
 import { cn, displayName } from "@/lib/utils";
@@ -93,7 +92,8 @@ export function LayoutEditor({ cls, roster, layoutId, setLayoutId }: { cls: Clas
   const allSeats = useRows("seats");
   const classLayouts = layouts.rows.filter((l) => l.class_id === cls.id).sort((a, b) => a.created_at.localeCompare(b.created_at));
   const layout = classLayouts.find((l) => l.id === layoutId) ?? classLayouts.find((l) => l.id === cls.default_layout_id) ?? classLayouts[0];
-  const seats = React.useMemo(() => allSeats.rows.filter((s) => s.layout_id === layout?.id), [allSeats.rows, layout?.id]);
+  const activeLayoutId = layout?.id;
+  const seats = allSeats.rows.filter((s) => s.layout_id === activeLayoutId);
   const studentMap = React.useMemo(() => new Map(roster.map((s) => [s.id, s])), [roster]);
   const [mode, setMode] = React.useState<"assign" | "arrange">("assign");
   const [selected, setSelected] = React.useState<Seat | null>(null);
@@ -338,31 +338,7 @@ export function LayoutEditor({ cls, roster, layoutId, setLayoutId }: { cls: Clas
           onSelect={(s) => setSelected(s)}
           onMoveItem={moveItem}
           onDropStudent={dropStudent}
-          renderUnseated={(startDrag) => (
-            <aside data-drop="unseated" aria-label="Unseated students" className="no-print w-full shrink-0 rounded-xl border bg-card p-3 lg:w-60">
-              <h3 className="mb-2 flex items-center justify-between text-sm font-semibold">
-                Unseated <Badge>{unseated.length}</Badge>
-              </h3>
-              {unseated.length ? (
-                <ul className="flex flex-wrap gap-1.5 lg:flex-col">
-                  {unseated.map((st) => (
-                    <li key={st.id}>
-                      <button
-                        type="button"
-                        onPointerDown={(e) => startDrag(e, st)}
-                        className="w-full touch-none cursor-grab rounded-md border bg-secondary/60 px-2 py-1 text-left text-sm active:cursor-grabbing"
-                        aria-label={`${displayName(st)} (unseated). Drag to a seat, or click a seat to assign.`}
-                      >
-                        {displayName(st)}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-muted-foreground">Everyone has a seat. Drag a student here to unseat them.</p>
-              )}
-            </aside>
-          )}
+          unseated={unseated}
         />
       </div>
 

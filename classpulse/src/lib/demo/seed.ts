@@ -1,4 +1,4 @@
-import type { Activity, Row, TableName } from "@/lib/types";
+import type { Activity, TableName } from "@/lib/types";
 import { TABLE_ORDER } from "@/lib/types";
 import { defaultConfigRows } from "@/lib/defaults";
 import { addDays, parseISODate, seededRandom, shuffle, toISODate, uuid } from "@/lib/utils";

@@ -16,6 +16,8 @@ export interface LiveInfo {
 }
 
 interface DragState {
+  /** Grid cell under the pointer, computed in the event handler. */
+  cell: { x: number; y: number } | null;
   kind: "item" | "student";
   id: string; // seat id (item) or student id (student)
   fromSeatId?: string;
@@ -41,18 +43,21 @@ export interface SeatingChartProps {
   onMoveItem?: (seat: Seat, x: number, y: number) => void;
   /** assign mode: drop student onto seat (null = unassign) */
   onDropStudent?: (studentId: string, seatId: string | null) => void;
-  /** Rendered beside the grid in assign mode; receives drag start for the unseated list. */
-  renderUnseated?: (startDrag: (e: React.PointerEvent, student: Student) => void) => React.ReactNode;
+  /** assign mode: students without a seat, shown beside the grid as drag sources / drop target. */
+  unseated?: Student[];
 }
 
 const CELL_W = 76; // px, minimum cell width (chart scrolls horizontally on small screens)
 const CELL_H = 64;
 
-export function SeatingChart({ layout, seats, students, mode, live, selectedId, onSelect, onMoveItem, onDropStudent, renderUnseated }: SeatingChartProps) {
+export function SeatingChart({ layout, seats, students, mode, live, selectedId, onSelect, onMoveItem, onDropStudent, unseated = [] }: SeatingChartProps) {
   const gridRef = React.useRef<HTMLDivElement>(null);
-  const [drag, setDrag] = React.useState<DragState | null>(null);
+  const [drag, setDragState] = React.useState<DragState | null>(null);
   const dragRef = React.useRef<DragState | null>(null);
-  dragRef.current = drag;
+  const setDrag = (d: DragState | null) => {
+    dragRef.current = d;
+    setDragState(d);
+  };
   // A drag ends with a click event on the dragged element; ignore that click.
   const suppressClick = React.useRef(false);
 
@@ -65,10 +70,10 @@ export function SeatingChart({ layout, seats, students, mode, live, selectedId, 
     return { x: cx, y: cy };
   };
 
-  const begin = (e: React.PointerEvent, d: Omit<DragState, "startX" | "startY" | "x" | "y" | "active">) => {
+  const begin = (e: React.PointerEvent, d: Omit<DragState, "startX" | "startY" | "x" | "y" | "active" | "cell">) => {
     if (e.button !== 0) return;
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-    setDrag({ ...d, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY, active: false });
+    setDrag({ ...d, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY, active: false, cell: cellAt(e.clientX, e.clientY) });
   };
 
   React.useEffect(() => {
@@ -77,7 +82,7 @@ export function SeatingChart({ layout, seats, students, mode, live, selectedId, 
       const d = dragRef.current;
       if (!d) return;
       const active = d.active || Math.hypot(e.clientX - d.startX, e.clientY - d.startY) > 5;
-      setDrag({ ...d, x: e.clientX, y: e.clientY, active });
+      setDrag({ ...d, x: e.clientX, y: e.clientY, active, cell: cellAt(e.clientX, e.clientY) });
     };
     const up = (e: PointerEvent) => {
       const d = dragRef.current;
@@ -106,6 +111,7 @@ export function SeatingChart({ layout, seats, students, mode, live, selectedId, 
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", cancel);
     };
+    // Listeners are bound once per drag; handlers read the latest state from dragRef.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drag !== null]);
 
@@ -116,7 +122,7 @@ export function SeatingChart({ layout, seats, students, mode, live, selectedId, 
   let ghost: { x: number; y: number; w: number; h: number; ok: boolean } | null = null;
   if (drag?.active && drag.kind === "item") {
     const seat = seats.find((s) => s.id === drag.id);
-    const cell = cellAt(drag.x, drag.y);
+    const cell = drag.cell;
     if (seat && cell) {
       const x = Math.max(0, cell.x - drag.grabDX);
       const y = Math.max(0, cell.y - drag.grabDY);
@@ -133,7 +139,7 @@ export function SeatingChart({ layout, seats, students, mode, live, selectedId, 
 
   return (
     <div className={cn("flex flex-col gap-4", mode === "assign" && "lg:flex-row")}>
-      <div className="min-w-0 flex-1 overflow-x-auto rounded-xl border bg-secondary/40 p-2 sm:p-3">
+      <div className="relative min-w-0 flex-1 overflow-x-auto rounded-xl border bg-secondary/40 p-2 sm:p-3">
         <div className="mb-2 text-center text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Front of room</div>
         <div
           ref={gridRef}
@@ -189,7 +195,31 @@ export function SeatingChart({ layout, seats, students, mode, live, selectedId, 
         </div>
         <div className="mt-2 text-center text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Back of room</div>
       </div>
-      {mode === "assign" && renderUnseated?.((e, st) => startStudentDrag(e, st))}
+      {mode === "assign" && (
+        <aside data-drop="unseated" aria-label="Unseated students" className="no-print w-full shrink-0 rounded-xl border bg-card p-3 lg:w-60">
+          <h3 className="mb-2 flex items-center justify-between text-sm font-semibold">
+            Unseated <span className="rounded-md border bg-secondary px-1.5 py-0.5 text-xs font-medium">{unseated.length}</span>
+          </h3>
+          {unseated.length ? (
+            <ul className="flex flex-wrap gap-1.5 lg:flex-col">
+              {unseated.map((st) => (
+                <li key={st.id}>
+                  <button
+                    type="button"
+                    onPointerDown={(e) => startStudentDrag(e, st)}
+                    className="w-full touch-none cursor-grab rounded-md border bg-secondary/60 px-2 py-1 text-left text-sm active:cursor-grabbing"
+                    aria-label={`${displayName(st)} (unseated). Drag to a seat, or click a seat to assign.`}
+                  >
+                    {displayName(st)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground">Everyone has a seat. Drag a student here to unseat them.</p>
+          )}
+        </aside>
+      )}
       {drag?.active && drag.kind === "student" && (
         <div aria-hidden className="pointer-events-none fixed z-[60] -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-popover px-3 py-1.5 text-sm font-medium shadow-lg" style={{ left: drag.x, top: drag.y }}>
           {drag.label}

@@ -65,11 +65,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       const { data, error } = await sb.auth.signUp({ email: v.email, password: v.password, options: { emailRedirectTo: redirect, data: { display_name: v.display_name.trim() } } });
       if (error) setMessage({ kind: "error", text: error.message });
       else if (!data.session) setMessage({ kind: "info", text: "Check your email to confirm your account, then sign in." });
-      else window.location.href = next;
+      else window.location.assign(next);
     } else {
       const { error } = await sb.auth.signInWithPassword({ email: v.email, password: v.password });
       if (error) setMessage({ kind: "error", text: error.message === "Invalid login credentials" ? "Email or password is incorrect." : error.message });
-      else window.location.href = next;
+      else window.location.assign(next);
     }
   });
 

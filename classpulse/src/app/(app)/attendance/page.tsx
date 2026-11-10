@@ -245,7 +245,7 @@ function ClassHistory({ classId }: { classId: string }) {
       </Card>
       {days.length > 0 && (
         <Card>
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="text-xs">
               <caption className="sr-only">Attendance grid: students by date</caption>
               <thead>
