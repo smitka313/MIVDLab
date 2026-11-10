@@ -25,8 +25,8 @@ export async function resizeImage(file: File, max = 256): Promise<Blob> {
  * Store a photo and return the value for students.photo_path.
  * Supabase: private bucket, path `<teacher>/<student>.jpg`. Demo: inline data URL in this browser.
  */
-export async function uploadStudentPhoto(mode: "supabase" | "demo", teacherId: string, studentId: string, blob: Blob): Promise<string> {
-  if (mode === "demo") {
+export async function uploadStudentPhoto(mode: "supabase" | "demo" | "personal", teacherId: string, studentId: string, blob: Blob): Promise<string> {
+  if (mode !== "supabase") {
     return new Promise((res, rej) => {
       const r = new FileReader();
       r.onload = () => res(String(r.result));
@@ -40,8 +40,8 @@ export async function uploadStudentPhoto(mode: "supabase" | "demo", teacherId: s
   return path;
 }
 
-export async function deleteStudentPhoto(mode: "supabase" | "demo", path: string | null) {
-  if (!path || mode === "demo" || path.startsWith("data:")) return;
+export async function deleteStudentPhoto(mode: "supabase" | "demo" | "personal", path: string | null) {
+  if (!path || mode !== "supabase" || path.startsWith("data:")) return;
   await getBrowserSupabase().storage.from(BUCKET).remove([path]);
 }
 

@@ -7,6 +7,9 @@ import * as React from "react";
 import Link from "next/link";
 import { Download, FlaskConical, MonitorDown, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useInstallApp } from "@/components/providers/pwa";
+import { BackupPanel } from "@/features/backup/backup-panel";
+import { setLocalMode } from "@/lib/data/local-mode";
+import { isSupabaseConfigured } from "@/lib/config";
 import { PageHeader } from "@/components/app/app-shell";
 import { useAction, useData, useRows, useStore, useTables } from "@/components/providers/data-provider";
 import { Button } from "@/components/ui/button";
@@ -33,6 +36,7 @@ const SECTIONS = [
   ["library", "Intervention & template libraries"],
   ["install", "Install the app"],
   ["notifications", "Notifications"],
+  ["backup", "Backup & restore"],
   ["data", "Data & privacy"],
 ] as const;
 
@@ -84,6 +88,7 @@ export default function SettingsPage() {
           </Section>
           <InstallSection />
           <NotificationsSection />
+          <BackupSection />
           <DataSection />
         </div>
       </div>
@@ -380,6 +385,16 @@ function InstallSection() {
   );
 }
 
+function BackupSection() {
+  const { adapter } = useData();
+  if (adapter.mode !== "personal") return null;
+  return (
+    <Section id="backup" title="Backup & restore" description="My classroom is saved only on this device. A backup file is your copy: use it to recover, or to move to another computer or browser.">
+      <BackupPanel />
+    </Section>
+  );
+}
+
 function NotificationsSection() {
   const { prefs, updatePrefs } = useData();
   const run = useAction();
@@ -400,6 +415,7 @@ function DataSection() {
   const confirm = useConfirm();
   const [busy, setBusy] = React.useState(false);
   const demo = adapter.mode === "demo";
+  const personal = adapter.mode === "personal";
 
   const doExport = async () => {
     setBusy(true);
@@ -416,11 +432,13 @@ function DataSection() {
         <div className="flex items-start gap-3 rounded-lg border bg-secondary/40 p-3">
           <ShieldCheck className="mt-0.5 size-5 shrink-0 text-brand-ink" aria-hidden />
           <div className="grid gap-1">
-            <p className="font-medium">{demo ? "Demo mode: data stays in this browser" : "Your records are private to your account"}</p>
+            <p className="font-medium">{demo ? "Demo mode: data stays in this browser" : personal ? "My classroom: records stay on this device" : "Your records are private to your account"}</p>
             <p className="text-muted-foreground">
               {demo
                 ? "Demo data is fictional and stored only in this browser's local storage, which is not secure storage. Do not enter real student information in demo mode."
-                : "Records are protected by row-level security so other teachers can't read them unless you explicitly grant access. Teacher notes are never shared. Sensitive changes are kept in an audit log."}{" "}
+                : personal
+                  ? "Your classroom records are stored only in this browser on this device (IndexedDB). They are never sent to GitHub, Supabase or any other server — the app itself is just downloaded from its website. Anyone who can use this browser profile can open them, so keep the device and your account on it locked. Protect backup files with a passphrase."
+                  : "Records are protected by row-level security so other teachers can't read them unless you explicitly grant access. Teacher notes are never shared. Sensitive changes are kept in an audit log."}{" "}
               ClassPulse does not send student records to AI services. ClassPulse is designed for FERPA-conscious use, but it is not automatically FERPA-compliant: production use requires district review, approved data-privacy agreements and verification of applicable requirements.
             </p>
           </div>
@@ -464,6 +482,9 @@ function DataSection() {
           </div>
         </div>
 
+        {!isSupabaseConfigured && <WorkspaceSwitch mode={personal ? "personal" : "demo"} />}
+
+        {!personal && (
         <div className="grid gap-2">
           <h3 className="flex items-center gap-1.5 font-semibold">
             <FlaskConical className="size-4" aria-hidden /> Demo data
@@ -488,6 +509,7 @@ function DataSection() {
             {demo ? "Reset demo classroom" : "Load demo data…"}
           </Button>
         </div>
+        )}
 
         <div className="grid gap-2 rounded-lg border border-destructive/40 p-3">
           <h3 className="font-semibold text-destructive">Danger zone</h3>
@@ -502,7 +524,7 @@ function DataSection() {
             >
               <Trash2 /> Delete all classroom data…
             </Button>
-            {!demo && (
+            {adapter.mode === "supabase" && (
               <Button
                 variant="destructive"
                 onClick={async () => {
@@ -521,6 +543,39 @@ function DataSection() {
         <AuditLog />
       </div>
     </Section>
+  );
+}
+
+function WorkspaceSwitch({ mode }: { mode: "personal" | "demo" }) {
+  const confirm = useConfirm();
+  const target = mode === "personal" ? "demo" : "personal";
+  return (
+    <div className="grid gap-2">
+      <h3 className="font-semibold">Workspace</h3>
+      <p className="text-muted-foreground">
+        {mode === "personal"
+          ? "You're using My classroom. The demo is kept separately, so switching never mixes fictional and real records."
+          : "You're in the demo. My classroom is a separate, empty workspace for your real classes, saved only on this device."}
+      </p>
+      <Button
+        variant="outline"
+        className="justify-self-start"
+        onClick={async () => {
+          if (
+            await confirm({
+              title: target === "demo" ? "Switch to the demo?" : "Switch to My classroom?",
+              description: target === "demo" ? "Your classroom stays saved on this device. Switch back any time from Settings." : "The demo stays saved separately. Switch back any time from Settings.",
+              confirmLabel: "Switch",
+            })
+          ) {
+            setLocalMode(target);
+            window.location.assign(withBase("/dashboard/"));
+          }
+        }}
+      >
+        {target === "demo" ? "Switch to the demo" : "Switch to My classroom"}
+      </Button>
+    </div>
   );
 }
 

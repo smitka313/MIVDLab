@@ -10,7 +10,9 @@ ClassPulse is a classroom management web app for high school teachers (grades 9�
 
 ## Contents
 
-- [Quick start (demo mode)](#quick-start-demo-mode)
+- [Ways to run it](#ways-to-run-it)
+- [My classroom: records on this device](#my-classroom-records-on-this-device)
+- [Quick start (developers)](#quick-start-demo-mode)
 - [Install as an app](#install-as-an-app)
 - [Branding](#branding)
 - [Running with Supabase (real accounts)](#running-with-supabase-real-accounts)
@@ -25,6 +27,36 @@ ClassPulse is a classroom management web app for high school teachers (grades 9�
 
 ---
 
+## Ways to run it
+
+| | **My classroom** (on this device) | **Demo** | **Supabase accounts** |
+|---|---|---|---|
+| Hosting | GitHub Pages (or any static host) | GitHub Pages | GitHub Pages / Vercel + a free Supabase project |
+| Where records live | Only in this browser on this device (IndexedDB) | This browser (localStorage), fictional data | Supabase Postgres, protected by row-level security |
+| Accounts / setup | None | None | Supabase project + sign-in |
+| Multiple devices | Move a backup file between them | — | Automatic sync |
+| Best for | One teacher, own classes, getting started | Trying ClassPulse | Several devices, colleagues, district use |
+
+Without Supabase settings, ClassPulse asks on first visit whether to **Start my classroom** or **Explore the demo**. The two workspaces are stored separately. Switch between them under **Settings → Data & privacy → Workspace**.
+
+## My classroom: records on this device
+
+For a single teacher, this is the simplest setup. The app is downloaded from GitHub Pages, and **your records never leave your device**. Nothing is sent to GitHub, Supabase or any other server.
+
+- **Storage:** IndexedDB in the browser, with room for years of records. ClassPulse asks the browser to keep the data permanently (*Settings → Backup & restore* shows the status). Installing ClassPulse as an app makes it more likely the browser agrees.
+- **Backups:** *Settings → Backup & restore → Download backup*. Leave **Protect with a passphrase** ticked:
+  - The file is encrypted with AES-256-GCM, using a key derived from your passphrase with PBKDF2-SHA-256 (600,000 iterations) by the browser's built-in Web Crypto.
+  - Without the passphrase the file is unreadable, and changing it is detected.
+  - **If you lose the passphrase, the backup can't be opened.**
+
+  Keep backups somewhere private, such as your school OneDrive or Google Drive (not a shared folder). A banner reminds you when you have records but no backup in the last 7 days.
+- **New computer or browser:** open the site and choose *Restore from a backup file* on the welcome screen, or use *Settings → Backup & restore → Restore*. *Export all my data* files can be restored too.
+- **One tab at a time:** to stop two copies overwriting each other, only one tab or window (including the installed app) can have My classroom open. A second one shows a notice.
+- **What erases it:** clearing the browser's site data for the site, private/incognito windows (they're temporary), browser profile or device resets, and some district device-management policies. Your backup file is the safety net.
+- **Privacy:** anyone who can use your browser profile can open ClassPulse and see your records. Lock your device. Check with your district about storing student information on school devices.
+
+If you later want to sync across devices, you can set up Supabase accounts (below). Moving My classroom records into a Supabase account automatically isn't built yet. For now, export rosters as CSV and import them there.
+
 ## Quick start (demo mode)
 
 Requirements: Node.js 20.9+ (22 recommended).
@@ -37,10 +69,10 @@ npm run dev
 # open http://localhost:3000
 ```
 
-With no Supabase variables set, ClassPulse runs in **demo mode**:
+With no Supabase variables set, ClassPulse first asks whether to **Start my classroom** (see above) or **Explore the demo**. In the demo:
 
 - A fictional classroom is generated on first visit: one demo teacher, six class periods (Biology, AP Biology, Intro to Engineering Design, STEM Research Lab, Principles of Engineering), about 150 fictional students, seating layouts, four weeks of attendance and observations, intervention plans, groups, a project, contacts and reminders.
-- Data is saved in **this browser's localStorage only**. It is not secure storage, it isn't shared between devices, and a banner on every page says so.
+- Data is saved in **this browser's localStorage only**. It is not secure storage, it isn't shared between devices, and a banner on every page says so. It's kept separate from My classroom.
 - **Settings → Data & privacy → Reset demo classroom** restores the demo. **Delete all classroom data** gives you an empty workspace for trying setup from scratch.
 
 The demo adapter mirrors the database's foreign keys, cascades, unique constraints and audit logging, so the app behaves the same way it does against Supabase.
@@ -111,7 +143,7 @@ ClassPulse builds to plain static files. All data work happens in the browser an
 2. Push to `main`, or run **Actions → Deploy to GitHub Pages → Run workflow**.
 3. Open `https://<user>.github.io/<repo>/`, for example `https://smitka313.github.io/classpulse/`. Teachers can install it as an app from there.
 
-This gives you **demo mode** (fictional data in each browser). To turn on **real accounts**, also:
+This gives you **My classroom** (your records on your own device; see above) and the **demo**, with no further setup. To use **Supabase accounts** instead (records synced across devices), also:
 
 4. Set up Supabase as described in [Running with Supabase](#running-with-supabase-real-accounts). Use the Pages URL as the Site URL, and add `https://<user>.github.io/<repo>/auth/callback/` as a redirect URL.
 5. In GitHub: **Settings → Secrets and variables → Actions → Variables**, add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. They are public by design, so plain variables are fine. **Never** add the service-role key.
@@ -148,9 +180,9 @@ In every case, add `<your-url>/auth/callback/` to Supabase's redirect URLs.
 ```bash
 npm run typecheck   # TypeScript
 npm run lint        # ESLint (Next.js + React Compiler rules)
-npm test            # unit + data-layer tests (Vitest)          — 64 tests
+npm test            # unit, data-layer, backup and storage tests (Vitest) — 75 tests
 npm run test:db     # PostgreSQL RLS/authorization tests         — 14 tests
-npm run build && npm run test:e2e   # Playwright end-to-end, desktop + phone — 22 tests
+npm run test:e2e    # Playwright end-to-end on the static build, desktop + phone — 25 tests
 ```
 
 `test:db` needs a PostgreSQL 15+ superuser connection in `TEST_DATABASE_URL`, for example `postgres://postgres:postgres@localhost:5432/postgres`. It creates a temporary database, applies the auth shim and all migrations, then checks behavior as the real `authenticated` and `anon` roles. Without the variable the suite is skipped.
@@ -177,6 +209,7 @@ How the acceptance criteria are covered:
 | 14 | Exports produce valid files | unit CSV round-trip; e2e CSV and JSON downloads |
 | 15 | Destructive actions require confirmation | e2e `workflows.spec.ts` (typed confirmation) |
 | — | Installable web app; offline shell; no cross-origin caching | e2e `pwa.spec.ts` |
+| — | My classroom: starts empty, persists, separate from demo; encrypted backup restores on a fresh device; one tab at a time | e2e `personal.spec.ts`; unit `personal.test.ts` |
 
 ## What's implemented
 
@@ -227,7 +260,7 @@ classpulse/
 **Data flow.** Pages are client components that read tables through `useRows(table)` and write through the `Store`. The Store caches each table and updates the cache **only after the adapter confirms** the write, so a failed request never shows as saved. Two adapters implement the same interface:
 
 - `SupabaseAdapter` — supabase-js with the signed-in user's session. Authorization happens in Postgres through RLS.
-- `DemoAdapter` — localStorage. It mirrors the SQL schema's FKs, cascades and unique constraints (from `schema-meta.ts`, which a test checks against the migrations) and writes an audit log.
+- `DemoAdapter` — in the browser: the demo in localStorage, and My classroom in IndexedDB (`indexeddb-storage.ts`, with transactional, confirmed writes). Backups are handled by `lib/backup.ts`, workspace choice and the one-tab lock by `local-mode.ts`. It mirrors the SQL schema's FKs, cascades and unique constraints (from `schema-meta.ts`, which a test checks against the migrations) and writes an audit log.
 
 **Stack:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Radix primitives in the shadcn/ui style, Lucide icons, Supabase (Postgres, Auth, Storage), Recharts, React Hook Form + Zod, Papaparse, Sonner, Vitest, Playwright.
 

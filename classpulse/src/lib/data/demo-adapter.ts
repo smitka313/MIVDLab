@@ -4,18 +4,23 @@ import { FOREIGN_KEYS, UNIQUE_KEYS } from "./schema-meta";
 import { uuid } from "@/lib/utils";
 
 /**
- * DEMO MODE persistence.
+ * In-browser persistence, used by two workspaces that are stored separately:
  *
- * Stores fictional classroom data in this browser's localStorage. It mimics the
- * database's foreign keys, cascades and unique constraints so the app behaves
- * the same as with Supabase, but it is NOT secure storage and must never hold
- * real student records. The UI shows a permanent "Demo mode" banner.
+ *  - DEMO mode: fictional data in localStorage. A permanent banner says so.
+ *  - PERSONAL mode: the teacher's own classroom, kept only on this device in
+ *    IndexedDB (see indexeddb-storage.ts). Nothing is sent to any server; the
+ *    teacher protects it with backup files (see lib/backup.ts).
+ *
+ * It mimics the database's foreign keys, cascades and unique constraints so the
+ * app behaves the same as with Supabase.
  */
 
 export interface KeyValueStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
   removeItem(key: string): void;
+  /** Resolve once pending writes are durably stored; reject (after reverting them) if they failed. */
+  flush?(): Promise<void>;
 }
 
 export class MemoryStorage implements KeyValueStorage {
@@ -32,24 +37,55 @@ export class MemoryStorage implements KeyValueStorage {
 }
 
 export const DEMO_TEACHER_ID = "00000000-0000-4000-8000-000000000001";
-const PREFIX = "classpulse.demo.v1";
+export const PERSONAL_TEACHER_ID = "00000000-0000-4000-8000-000000000002";
+export type LocalMode = "demo" | "personal";
+const PREFIXES: Record<LocalMode, string> = { demo: "classpulse.demo.v1", personal: "classpulse.personal.v1" };
+
+/** A full copy of a local workspace (used for backups and restores). */
+export interface LocalSnapshot {
+  profile: Profile;
+  preferences: UserPreferences;
+  tables: Partial<Record<TableName, Record<string, unknown>[]>>;
+}
 const ALL_TABLES: TableName[] = [...TABLE_ORDER, "audit_logs"];
 
 type AnyRow = Record<string, unknown> & { id: string };
 
 export class DemoAdapter implements DataAdapter {
-  readonly mode = "demo" as const;
-  readonly userId = DEMO_TEACHER_ID;
+  readonly mode: LocalMode;
+  readonly userId: string;
   private cache = new Map<TableName, AnyRow[]>();
+  private prefix: string;
 
   constructor(
     private storage: KeyValueStorage,
     private now: () => Date = () => new Date(),
-  ) {}
+    mode: LocalMode = "demo",
+  ) {
+    this.mode = mode;
+    this.userId = mode === "personal" ? PERSONAL_TEACHER_ID : DEMO_TEACHER_ID;
+    this.prefix = PREFIXES[mode];
+  }
 
   // ---- low-level helpers -------------------------------------------------
   private key(name: string) {
-    return `${PREFIX}.${name}`;
+    return `${this.prefix}.${name}`;
+  }
+
+  /** Persist touched tables and wait until the storage confirms the write. */
+  private async commit(tables: Iterable<TableName>) {
+    this.persist(tables);
+    await this.flush();
+  }
+
+  private async flush() {
+    if (!this.storage.flush) return;
+    try {
+      await this.storage.flush();
+    } catch (e) {
+      this.cache.clear(); // storage reverted the failed write; re-read it
+      throw new DataError("This device's storage is full or unavailable. The change was not saved.", "storage", e);
+    }
   }
 
   private rows(table: TableName): AnyRow[] {
@@ -146,7 +182,7 @@ export class DemoAdapter implements DataAdapter {
       throw e;
     }
     for (const row of created) this.audit(table, "insert", null, row, touched);
-    this.persist(touched);
+    await this.commit(touched);
     return created.map((r) => ({ ...r })) as unknown as Row<T>[];
   }
 
@@ -161,7 +197,7 @@ export class DemoAdapter implements DataAdapter {
     rows[idx] = next;
     const touched = new Set<TableName>([table]);
     this.audit(table, "update", old, next, touched);
-    this.persist(touched);
+    await this.commit(touched);
     return { ...next } as unknown as Row<T>;
   }
 
@@ -185,7 +221,7 @@ export class DemoAdapter implements DataAdapter {
     // Check RESTRICT constraints first so a failed delete changes nothing.
     for (const id of ids) this.checkRestrict(table, id);
     for (const id of ids) this.deleteCascade(table, id, touched);
-    this.persist(touched);
+    await this.commit(touched);
   }
 
   private checkRestrict(table: TableName, id: string) {
@@ -235,12 +271,14 @@ export class DemoAdapter implements DataAdapter {
       updated_at: ts,
     };
     this.storage.setItem(this.key("profile"), JSON.stringify(p));
+    await this.flush();
     return p;
   }
 
   async updateProfile(patch: Partial<Pick<Profile, "display_name" | "onboarded_at">>): Promise<Profile> {
     const p = { ...(await this.getProfile()), ...patch, updated_at: this.stamp() };
     this.storage.setItem(this.key("profile"), JSON.stringify(p));
+    await this.flush();
     return p;
   }
 
@@ -265,6 +303,7 @@ export class DemoAdapter implements DataAdapter {
   async updatePreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
     const p = { ...(await this.getPreferences()), ...patch, updated_at: this.stamp() };
     this.storage.setItem(this.key("preferences"), JSON.stringify(p));
+    await this.flush();
     return p;
   }
 
@@ -273,12 +312,15 @@ export class DemoAdapter implements DataAdapter {
       this.storage.removeItem(this.key(t));
     }
     this.cache.clear();
+    await this.flush();
   }
 
   async deleteAccount(): Promise<void> {
     await this.deleteClassroomData();
     this.storage.removeItem(this.key("profile"));
     this.storage.removeItem(this.key("preferences"));
+    this.storage.removeItem(this.key("meta"));
+    await this.flush();
   }
 
   async applyRetention(): Promise<number> {
@@ -306,15 +348,56 @@ export class DemoAdapter implements DataAdapter {
         touched.add(t);
       }
     }
-    this.persist(touched);
+    await this.commit(touched);
     return n;
   }
 
-  /** Bulk-load rows bypassing per-row checks (used by the demo seeder only). */
-  loadRaw(tables: Partial<Record<TableName, AnyRow[]>>) {
+  /** Bulk-load rows bypassing per-row checks (demo seeder and restores). */
+  async loadRaw(tables: Partial<Record<TableName, AnyRow[]>>) {
     for (const [t, rows] of Object.entries(tables) as [TableName, AnyRow[]][]) {
       this.cache.set(t, rows);
     }
-    this.persist(Object.keys(tables) as TableName[]);
+    await this.commit(Object.keys(tables) as TableName[]);
+  }
+
+  // ---- backups -----------------------------------------------------------
+  async snapshot(): Promise<LocalSnapshot> {
+    const tables: LocalSnapshot["tables"] = {};
+    for (const t of ALL_TABLES) tables[t] = this.rows(t).map((r) => ({ ...r }));
+    return { profile: await this.getProfile(), preferences: await this.getPreferences(), tables };
+  }
+
+  /** Replace this workspace with a snapshot. Rows are re-owned by this workspace's teacher id. */
+  async restore(snap: LocalSnapshot) {
+    const own = (r: Record<string, unknown>) => ({ ...r, teacher_id: this.userId }) as unknown as AnyRow;
+    const tables: Partial<Record<TableName, AnyRow[]>> = {};
+    for (const t of ALL_TABLES) tables[t] = (snap.tables[t] ?? []).map(own);
+    for (const t of ALL_TABLES) this.storage.removeItem(this.key(t));
+    this.cache.clear();
+    const ts = this.stamp();
+    this.storage.setItem(this.key("profile"), JSON.stringify({ ...snap.profile, id: this.userId, onboarded_at: snap.profile.onboarded_at ?? ts }));
+    this.storage.setItem(this.key("preferences"), JSON.stringify({ ...snap.preferences, teacher_id: this.userId, current_class_id: null }));
+    await this.loadRaw(tables);
+  }
+
+  /** Small per-workspace values such as the last backup time. */
+  getMeta(name: string): string | null {
+    try {
+      return (JSON.parse(this.storage.getItem(this.key("meta")) ?? "{}") as Record<string, string>)[name] ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  async setMeta(name: string, value: string) {
+    let meta: Record<string, string> = {};
+    try {
+      meta = JSON.parse(this.storage.getItem(this.key("meta")) ?? "{}");
+    } catch {
+      /* start fresh */
+    }
+    meta[name] = value;
+    this.storage.setItem(this.key("meta"), JSON.stringify(meta));
+    await this.flush();
   }
 }

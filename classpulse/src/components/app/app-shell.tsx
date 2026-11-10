@@ -33,6 +33,7 @@ import { classLabel, useCurrentClass } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { useInstallApp } from "@/components/providers/pwa";
+import { BackupReminder } from "@/features/backup/backup-reminder";
 import { MonitorDown } from "lucide-react";
 
 export const NAV = [
@@ -187,6 +188,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
       <DemoBanner />
+      <BackupReminder />
       <div className="flex flex-1">
         {/* Desktop sidebar */}
         <aside className="no-print sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-6 bg-gradient-to-b from-sidebar-2 to-sidebar to-40% p-4 text-sidebar-foreground lg:flex" aria-label="Main navigation">
@@ -196,6 +198,11 @@ function Shell({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="grid gap-1 border-t border-white/10 pt-3">
             <p className="truncate px-3 text-xs text-sidebar-muted">{profile.display_name || profile.email || (adapter.mode === "demo" ? "Demo teacher" : "")}</p>
+            {adapter.mode === "personal" && (
+              <Link href="/settings#backup" className="px-3 text-[11px] text-sidebar-muted underline-offset-2 hover:underline">
+                Saved on this device · Backup
+              </Link>
+            )}
             <InstallButton />
             <SignOut />
           </div>

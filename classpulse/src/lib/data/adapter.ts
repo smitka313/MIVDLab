@@ -1,11 +1,12 @@
 import type { NewRow, Patch, Profile, Row, TableName, UserPreferences } from "@/lib/types";
 
-export type DataMode = "supabase" | "demo";
+export type DataMode = "supabase" | "demo" | "personal";
 
 /**
  * Persistence boundary. Two implementations exist:
  *  - SupabaseAdapter: real PostgreSQL with row-level security (production).
- *  - DemoAdapter: browser localStorage, fictional data only, clearly labelled.
+ *  - DemoAdapter: in-browser storage. "demo" = fictional data (localStorage);
+ *    "personal" = the teacher's own records kept only on this device (IndexedDB).
  * All UI code talks to this interface (through the Store), never to a backend directly.
  */
 export interface DataAdapter {

@@ -114,7 +114,7 @@ export function StudentForm({ existing, defaultClassId, onDone }: { existing?: S
         <Field label="School student ID" htmlFor="s-sid" error={e.school_student_id?.message} hint="Optional. Used to detect duplicates on import.">
           <Input id="s-sid" {...register("school_student_id")} aria-invalid={!!e.school_student_id} />
         </Field>
-        <Field label="Photo" htmlFor="s-photo" error={photoError ?? undefined} hint={adapter.mode === "demo" ? "Demo mode: stored only in this browser." : "Optional. Stored privately; visible only to you."}>
+        <Field label="Photo" htmlFor="s-photo" error={photoError ?? undefined} hint={adapter.mode === "supabase" ? "Optional. Stored privately; visible only to you." : "Optional. Stored only on this device."}>
           <div className="flex items-center gap-2">
             {existing && !removePhoto && !photo && <StudentAvatar student={existing} className="size-9" />}
             <Input

@@ -8,6 +8,9 @@ import type { Profile, Row, TableName, UserPreferences } from "@/lib/types";
 import { friendlyError, type DataAdapter } from "@/lib/data/adapter";
 import { Store, type TableState } from "@/lib/data/store";
 import { DemoAdapter, DEMO_TEACHER_ID } from "@/lib/data/demo-adapter";
+import { acquireTabLock, getLocalMode, openLocalAdapter } from "@/lib/data/local-mode";
+import { requestPersistentStorage } from "@/lib/data/indexeddb-storage";
+import { ModeChooser, TabLocked } from "@/features/welcome/mode-chooser";
 import { SupabaseAdapter } from "@/lib/data/supabase-adapter";
 import { isSupabaseConfigured } from "@/lib/config";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -115,6 +118,8 @@ export function useAction() {
 type Boot =
   | { state: "loading" }
   | { state: "error"; error: unknown }
+  | { state: "choose" }
+  | { state: "locked" }
   | { state: "ready"; adapter: DataAdapter; store: Store; profile: Profile; prefs: UserPreferences };
 
 async function seedThroughStore(store: Store, adapter: DataAdapter) {
@@ -157,14 +162,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           }
           adapter = new SupabaseAdapter(sb, data.user.id);
         } else {
-          const demo = new DemoAdapter(window.localStorage);
-          const profile = await demo.getProfile();
-          if (!profile.onboarded_at) {
-            // First visit in demo mode: build the fictional demo classroom.
-            demo.loadRaw(generateDemoData({ teacherId: DEMO_TEACHER_ID }));
-            await demo.updateProfile({ display_name: "Demo Teacher", onboarded_at: new Date().toISOString() });
+          const mode = getLocalMode();
+          if (!mode) {
+            if (!cancelled) setBoot({ state: "choose" });
+            return;
           }
-          adapter = demo;
+          if (!(await acquireTabLock())) {
+            if (!cancelled) setBoot({ state: "locked" });
+            return;
+          }
+          const local = await openLocalAdapter(mode);
+          const profile = await local.getProfile();
+          if (!profile.onboarded_at) {
+            if (mode === "demo") {
+              // First visit in demo mode: build the fictional demo classroom.
+              await local.loadRaw(generateDemoData({ teacherId: DEMO_TEACHER_ID }));
+              await local.updateProfile({ display_name: "Demo Teacher", onboarded_at: new Date().toISOString() });
+            } else {
+              // Personal mode starts empty (plus editable starter settings).
+              await local.updateProfile({ onboarded_at: new Date().toISOString() });
+              void requestPersistentStorage();
+            }
+          }
+          adapter = local;
         }
         const store = new Store(adapter);
         await ensureDefaults(store);
@@ -200,9 +220,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setBoot((b) => (b.state === "ready" ? { ...b, profile } : b));
       },
       loadDemoData: async () => {
+        if (adapter.mode === "personal") throw new Error("Demo data can't be loaded into your personal classroom. Switch to the demo instead.");
         if (adapter instanceof DemoAdapter) {
           await adapter.deleteClassroomData();
-          adapter.loadRaw(generateDemoData({ teacherId: DEMO_TEACHER_ID }));
+          await adapter.loadRaw(generateDemoData({ teacherId: DEMO_TEACHER_ID }));
           await adapter.updatePreferences({ current_class_id: null });
           store.clear();
         } else {
@@ -221,6 +242,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [boot, setTheme]);
 
   if (boot.state === "loading") return <LoadingState label="Loading ClassPulse…" className="min-h-dvh" />;
+  if (boot.state === "choose") return <ModeChooser onChosen={() => setAttempt((a) => a + 1)} />;
+  if (boot.state === "locked") return <TabLocked onRetry={() => setAttempt((a) => a + 1)} />;
   if (boot.state === "error")
     return (
       <div className="mx-auto max-w-lg p-8">
