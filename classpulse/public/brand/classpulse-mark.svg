@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ClassPulse">
+  <path d="M6 21 32 10 58 21 32 32Z" fill="#013366"/>
+  <path d="M15 25.5V36c0 0 6 5.5 17 5.5S49 36 49 36V25.5L32 32.8Z" fill="#001A40"/>
+  <path d="M52.5 22.5V33" stroke="#001A40" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M50.6 33.5h3.8l-.6 5h-2.6Z" fill="#001A40"/>
+  <path d="M8 49.5c8-5 16-5 24 0 8-5 16-5 24 0v3c-8-4.6-16-4.6-24 0-8-4.6-16-4.6-24 0Z" fill="#001A40"/>
+  <polyline points="3,40 20,40 24,35.5 28,44 33.5,19 39,48.5 43,38 46.5,40 61,40" fill="none" stroke="#01B5C2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

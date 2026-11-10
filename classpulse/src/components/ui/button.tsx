@@ -14,7 +14,7 @@ export const buttonVariants = cva(
         outline: "border border-input bg-card shadow-xs hover:bg-secondary",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-secondary",
-        link: "text-brand underline-offset-4 hover:underline px-0",
+        link: "text-brand-ink underline-offset-4 hover:underline px-0",
       },
       size: {
         default: "h-9 px-4 py-2",

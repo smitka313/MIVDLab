@@ -4,60 +4,68 @@
 
 /* ClassPulse design tokens: navy / slate / white with a restrained teal accent. */
 :root {
-  --background: oklch(0.985 0.003 247);
-  --foreground: oklch(0.21 0.034 264);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.034 264);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.034 264);
-  --primary: oklch(0.29 0.06 260); /* navy */
-  --primary-foreground: oklch(0.985 0.003 247);
-  --secondary: oklch(0.955 0.008 255);
-  --secondary-foreground: oklch(0.27 0.04 260);
-  --muted: oklch(0.955 0.008 255);
-  --muted-foreground: oklch(0.47 0.03 257);
-  --accent: oklch(0.95 0.03 190);
-  --accent-foreground: oklch(0.35 0.07 195);
-  --brand: oklch(0.55 0.1 192); /* teal */
-  --brand-foreground: oklch(0.99 0 0);
-  --destructive: oklch(0.55 0.2 25);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.91 0.01 255);
-  --input: oklch(0.88 0.012 255);
-  --ring: oklch(0.55 0.1 192);
-  --sidebar: oklch(0.22 0.045 262);
-  --sidebar-foreground: oklch(0.9 0.015 255);
-  --sidebar-muted: oklch(0.7 0.03 257);
-  --sidebar-accent: oklch(0.29 0.05 260);
+  /* ClassPulse brand palette (from the logo): navy #001A40 / deep navy #00133D,
+     royal #015095, teal #01B5C2, light teal #7CD1D9, slate #7991AF. */
+  --background: #f5f8fc;
+  --foreground: #0a1a3a;
+  --card: #ffffff;
+  --card-foreground: #0a1a3a;
+  --popover: #ffffff;
+  --popover-foreground: #0a1a3a;
+  --primary: #001a40; /* logo navy */
+  --primary-foreground: #ffffff;
+  --secondary: #eaf0f7;
+  --secondary-foreground: #0b2550;
+  --muted: #eaf0f7;
+  --muted-foreground: #4a5b78;
+  --accent: #e2f6f8;
+  --accent-foreground: #005f69;
+  --brand: #01b5c2; /* logo teal — fills, with navy text on top */
+  --brand-foreground: #00133d;
+  --brand-ink: #007a85; /* same hue, dark enough for text on white (4.9:1) */
+  --destructive: #c62f3b;
+  --destructive-foreground: #ffffff;
+  --border: #dce4ee;
+  --input: #c9d5e3;
+  --ring: #01b5c2;
+  --sidebar: #00133d;
+  --sidebar-2: #01285f;
+  --sidebar-foreground: #e6eef7;
+  --sidebar-muted: #a9b8cf;
+  --sidebar-accent: #0b2e63;
+  --sidebar-primary: #1cc6d3;
   --radius: 0.75rem;
 }
 
 .dark {
-  --background: oklch(0.17 0.025 264);
-  --foreground: oklch(0.94 0.008 255);
-  --card: oklch(0.21 0.03 264);
-  --card-foreground: oklch(0.94 0.008 255);
-  --popover: oklch(0.21 0.03 264);
-  --popover-foreground: oklch(0.94 0.008 255);
-  --primary: oklch(0.86 0.04 230);
-  --primary-foreground: oklch(0.2 0.04 262);
-  --secondary: oklch(0.27 0.03 262);
-  --secondary-foreground: oklch(0.92 0.01 255);
-  --muted: oklch(0.26 0.03 262);
-  --muted-foreground: oklch(0.72 0.025 257);
-  --accent: oklch(0.3 0.05 200);
-  --accent-foreground: oklch(0.88 0.06 190);
-  --brand: oklch(0.7 0.11 190);
-  --brand-foreground: oklch(0.18 0.03 260);
-  --destructive: oklch(0.65 0.19 25);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.3 0.03 262);
-  --input: oklch(0.34 0.03 262);
-  --ring: oklch(0.7 0.11 190);
-  --sidebar: oklch(0.14 0.025 264);
-  --sidebar-foreground: oklch(0.9 0.015 255);
-  --sidebar-muted: oklch(0.66 0.03 257);
-  --sidebar-accent: oklch(0.24 0.035 262);
+  --background: #050d1f;
+  --foreground: #e6eef7;
+  --card: #0b1730;
+  --card-foreground: #e6eef7;
+  --popover: #0d1b38;
+  --popover-foreground: #e6eef7;
+  --primary: #e3f3f6;
+  --primary-foreground: #00133d;
+  --secondary: #13244a;
+  --secondary-foreground: #e6eef7;
+  --muted: #13244a;
+  --muted-foreground: #9aaac4;
+  --accent: #0a3442;
+  --accent-foreground: #7cd1d9;
+  --brand: #1cc6d3;
+  --brand-foreground: #00133d;
+  --brand-ink: #4fd6e0;
+  --destructive: #ef5a64;
+  --destructive-foreground: #ffffff;
+  --border: #1b2d52;
+  --input: #253a63;
+  --ring: #1cc6d3;
+  --sidebar: #020818;
+  --sidebar-2: #071737;
+  --sidebar-foreground: #e6eef7;
+  --sidebar-muted: #8fa1bf;
+  --sidebar-accent: #0d2550;
+  --sidebar-primary: #1cc6d3;
 }
 
 @theme inline {
@@ -77,6 +85,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-ink: var(--brand-ink);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -86,6 +95,8 @@
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-2: var(--sidebar-2);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

@@ -6,7 +6,7 @@ export default function NotFound() {
       <div className="grid gap-3">
         <p className="text-sm font-medium text-muted-foreground">404</p>
         <h1 className="text-2xl font-semibold">Page not found</h1>
-        <Link href="/dashboard" className="text-brand underline underline-offset-4">
+        <Link href="/dashboard" className="text-brand-ink underline underline-offset-4">
           Go to the dashboard
         </Link>
       </div>

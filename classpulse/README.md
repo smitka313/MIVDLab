@@ -11,6 +11,8 @@ ClassPulse is a classroom management web app for high school teachers (grades 9�
 ## Contents
 
 - [Quick start (demo mode)](#quick-start-demo-mode)
+- [Install as an app](#install-as-an-app)
+- [Branding](#branding)
 - [Running with Supabase (real accounts)](#running-with-supabase-real-accounts)
 - [Deploying to Vercel](#deploying-to-vercel)
 - [Tests](#tests)
@@ -27,7 +29,7 @@ ClassPulse is a classroom management web app for high school teachers (grades 9�
 Requirements: Node.js 20.9+ (22 recommended).
 
 ```bash
-cd classpulse
+cd classpulse        # the app folder (repository root in the ClassPulse repo)
 npm install
 npm run dev
 # open http://localhost:3000
@@ -40,6 +42,45 @@ With no Supabase variables set, ClassPulse runs in **demo mode**:
 - **Settings → Data & privacy → Reset demo classroom** restores the demo. **Delete all classroom data** gives you an empty workspace for trying setup from scratch.
 
 The demo adapter mirrors the database's foreign keys, cascades, unique constraints and audit logging, so the app behaves the same way it does against Supabase.
+
+## Install as an app
+
+ClassPulse is a Progressive Web App. Teachers can install it from the browser, with no app store, download or administrator rights needed:
+
+- **Chromebook / Windows / Mac (Chrome or Edge):** use the install icon in the address bar, **Install ClassPulse app** in the sidebar, or **Settings → Install the app**.
+- **Android:** Chrome menu → *Install app* / *Add to Home screen*.
+- **iPhone / iPad:** Safari → Share → *Add to Home Screen*.
+
+The installed app opens in its own window with the ClassPulse icon, and has shortcuts to Classroom, Attendance and Students. It's served from `src/app/manifest.ts`, `public/sw.js` and the icons in `public/`.
+
+The service worker only works in production builds (`npm run build && npm start`, or a deployment), and needs HTTPS (or `localhost`). It caches **only the app itself** (code, page shells, icons), never student records:
+
+- Supabase traffic goes to another domain and is never intercepted.
+- Pages render records in the browser after sign-in, so the cached HTML contains no records.
+- Sign-out clears the caches.
+
+Offline, the app shell opens. In demo mode the browser's demo data still works offline. With Supabase, loading and saving show a clear "couldn't reach the server — nothing was saved" error, and pages you haven't opened before show an offline page.
+
+## Branding
+
+The palette comes from the ClassPulse logo:
+
+| Token | Color | Use |
+|---|---|---|
+| Navy | `#001A40` | Wordmark "Class", primary buttons, text |
+| Deep navy → royal | `#00133D` → `#015095` | Sidebar, app-icon gradient |
+| Teal | `#01B5C2` | Wordmark "Pulse", pulse line, highlight buttons (with navy text) |
+| Teal ink | `#007A85` | Teal as text on white (passes WCAG AA; the logo teal alone doesn't) |
+| Light teal / slate | `#7CD1D9` / `#7991AF` | Accents, dividers |
+
+Logo files are in `public/brand/`:
+
+- `classpulse-mark.svg` / `-reverse.svg` — the mark on light / dark backgrounds
+- `classpulse-lockup.svg` / `-reverse.svg` — the mark with wordmark and tagline
+- `classpulse-app-icon.svg` / `classpulse-maskable.svg` — app icons
+- `original-*.png` — crops of the supplied logo artwork (lockup, app icon, badge), for print and marketing
+
+The SVGs are vector redraws of the supplied artwork, so they stay crisp at any size. The PNG icons in `public/` were rendered from them. The colors are defined once as CSS variables in `src/app/globals.css`, with light and dark (navy-and-glow) themes.
 
 ## Running with Supabase (real accounts)
 
@@ -60,7 +101,7 @@ New accounts start empty, apart from editable starter configuration: behavior ca
 
 ## Deploying to Vercel
 
-1. Import the repository in Vercel and set **Root Directory** to `classpulse`.
+1. Import the repository in Vercel. If the app sits in a subfolder (as in the MIVDLab repository), set **Root Directory** to that folder. In the standalone ClassPulse repository it's the repository root.
 2. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Project → Settings → Environment Variables. If you leave them out, the deployment runs in demo mode.
 3. Deploy. Add the production URL's `/auth/callback` to Supabase's redirect URLs.
 
@@ -73,7 +114,7 @@ npm run typecheck   # TypeScript
 npm run lint        # ESLint (Next.js + React Compiler rules)
 npm test            # unit + data-layer tests (Vitest)          — 64 tests
 npm run test:db     # PostgreSQL RLS/authorization tests         — 14 tests
-npm run build && npm run test:e2e   # Playwright end-to-end, desktop + phone — 20 tests
+npm run build && npm run test:e2e   # Playwright end-to-end, desktop + phone — 22 tests
 ```
 
 `test:db` needs a PostgreSQL 15+ superuser connection in `TEST_DATABASE_URL`, for example `postgres://postgres:postgres@localhost:5432/postgres`. It creates a temporary database, applies the auth shim and all migrations, then checks behavior as the real `authenticated` and `anon` roles. Without the variable the suite is skipped.
@@ -99,6 +140,7 @@ How the acceptance criteria are covered:
 | 13 | Works on desktop and mobile | e2e `mobile.spec.ts` (Pixel 7: no horizontal overflow on every main page, bottom nav, quick log, seating chart) |
 | 14 | Exports produce valid files | unit CSV round-trip; e2e CSV and JSON downloads |
 | 15 | Destructive actions require confirmation | e2e `workflows.spec.ts` (typed confirmation) |
+| — | Installable web app; offline shell; no cross-origin caching | e2e `pwa.spec.ts` |
 
 ## What's implemented
 

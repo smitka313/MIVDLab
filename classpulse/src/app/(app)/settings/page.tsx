@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Download, FlaskConical, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Download, FlaskConical, MonitorDown, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { useInstallApp } from "@/components/providers/pwa";
 import { PageHeader } from "@/components/app/app-shell";
 import { useAction, useData, useRows, useStore, useTables } from "@/components/providers/data-provider";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ const SECTIONS = [
   ["attendance", "Attendance statuses"],
   ["seating", "Default seating charts"],
   ["library", "Intervention & template libraries"],
+  ["install", "Install the app"],
   ["notifications", "Notifications"],
   ["data", "Data & privacy"],
 ] as const;
@@ -77,6 +79,7 @@ export default function SettingsPage() {
               </p>
             </div>
           </Section>
+          <InstallSection />
           <NotificationsSection />
           <DataSection />
         </div>
@@ -345,6 +348,35 @@ function SeatingDefaultsSection() {
   );
 }
 
+function InstallSection() {
+  const app = useInstallApp();
+  return (
+    <Section id="install" title="Install ClassPulse as an app" description="Open ClassPulse from your dock, taskbar, shelf or home screen in its own window. No app store, download or administrator rights needed.">
+      <div className="grid gap-3 text-sm">
+        {app.installed ? (
+          <p className="font-medium text-brand-ink">ClassPulse is running as an installed app.</p>
+        ) : app.canPrompt ? (
+          <Button variant="brand" className="justify-self-start" onClick={() => void app.install()}>
+            <MonitorDown /> Install ClassPulse
+          </Button>
+        ) : null}
+        <ul className="grid gap-1.5 text-muted-foreground">
+          <li>
+            <span className="font-medium text-foreground">Chromebook, Windows or Mac (Chrome / Edge):</span> click the install icon at the right end of the address bar, or browser menu → <em>Install ClassPulse</em>.
+          </li>
+          <li>
+            <span className="font-medium text-foreground">Android:</span> Chrome menu ⋮ → <em>Add to Home screen</em> / <em>Install app</em>.
+          </li>
+          <li>
+            <span className="font-medium text-foreground">iPhone / iPad:</span> in Safari tap Share → <em>Add to Home Screen</em>.
+          </li>
+        </ul>
+        <p className="text-xs text-muted-foreground">The installed app uses the same account and data as the website. It caches only the app itself (never student records), so it can open without a connection, but saving records needs internet.</p>
+      </div>
+    </Section>
+  );
+}
+
 function NotificationsSection() {
   const { prefs, updatePrefs } = useData();
   const run = useAction();
@@ -379,7 +411,7 @@ function DataSection() {
     <Section id="data" title="Data & privacy">
       <div className="grid gap-5 text-sm">
         <div className="flex items-start gap-3 rounded-lg border bg-secondary/40 p-3">
-          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
+          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-brand-ink" aria-hidden />
           <div className="grid gap-1">
             <p className="font-medium">{demo ? "Demo mode: data stays in this browser" : "Your records are private to your account"}</p>
             <p className="text-muted-foreground">

@@ -312,7 +312,7 @@ function Analytics({ data, f }: { data: ReportData; f: ReportFilters }) {
             <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
             <YAxis domain={[0, 100]} unit="%" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
             <Tooltip {...TOOLTIP} formatter={(v, n) => (n === "rate" ? [`${v}%`, "Attendance"] : [v, n])} />
-            <Line type="monotone" dataKey="rate" name="Attendance" stroke="#0d9488" strokeWidth={2} dot={{ r: 3 }} />
+            <Line type="monotone" dataKey="rate" name="Attendance" stroke="#00a3b0" strokeWidth={2} dot={{ r: 3 }} />
           </LineChart>
         ) : undefined}
       </ChartCard>

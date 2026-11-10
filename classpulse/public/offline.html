@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offline · ClassPulse</title>
+<meta name="theme-color" content="#001a40">
+<style>
+  :root { --bg:#f5f8fc; --fg:#0a1a3a; --muted:#4a5b78; --card:#fff; --border:#dce4ee; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#050d1f; --fg:#e6eef7; --muted:#9aaac4; --card:#0b1730; --border:#1b2d52; } }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; padding:16px; box-sizing:border-box; }
+  .card { max-width:420px; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:28px; text-align:center; }
+  img { width:72px; height:72px; }
+  h1 { font-size:20px; margin:12px 0 6px; } p { color:var(--muted); line-height:1.5; margin:0 0 18px; }
+  button { background:#01b5c2; color:#00133d; border:0; border-radius:10px; padding:10px 18px; font-weight:600; font-size:15px; cursor:pointer; }
+  button:focus-visible { outline:2px solid #01b5c2; outline-offset:2px; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <img src="/brand/classpulse-app-icon.svg" alt="ClassPulse">
+    <h1>You're offline</h1>
+    <p>ClassPulse needs a connection to load and save classroom records. Nothing was saved while you were offline. Reconnect and try again.</p>
+    <button type="button" onclick="location.reload()">Try again</button>
+  </main>
+</body>
+</html>

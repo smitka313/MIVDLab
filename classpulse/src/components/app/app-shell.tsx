@@ -31,6 +31,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { classLabel, useCurrentClass } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { useInstallApp } from "@/components/providers/pwa";
+import { MonitorDown } from "lucide-react";
 
 export const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -49,15 +51,25 @@ function isActive(path: string, href: string) {
   return path === href || path.startsWith(`${href}/`);
 }
 
-function Brand({ className, compact }: { className?: string; compact?: boolean }) {
+/** ClassPulse logo: mark + two-tone wordmark ("Class" navy/white, "Pulse" teal), as in the brand lockup. */
+function Brand({ className, compact, onDark }: { className?: string; compact?: boolean; onDark?: boolean }) {
   return (
-    <Link href="/dashboard" aria-label="ClassPulse home" className={cn("flex shrink-0 items-center gap-2 font-semibold tracking-tight", className)}>
-      <span aria-hidden className="grid size-8 place-items-center rounded-lg bg-brand text-brand-foreground">
-        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 12h4l2-5 4 10 2-5h6" />
-        </svg>
+    <Link href="/dashboard" aria-label="ClassPulse home" className={cn("flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight", className)}>
+      {onDark ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src="/brand/classpulse-mark-reverse.svg" alt="" className="size-9 drop-shadow-[0_0_6px_rgba(28,198,211,0.55)]" />
+      ) : (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/classpulse-mark.svg" alt="" className="size-9 dark:hidden" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/classpulse-mark-reverse.svg" alt="" className="hidden size-9 dark:block" />
+        </>
+      )}
+      <span className={compact ? "hidden sm:inline" : undefined}>
+        <span className={onDark ? "text-white" : "text-primary dark:text-white"}>Class</span>
+        <span className={onDark ? "text-sidebar-primary" : "text-brand-ink"}>Pulse</span>
       </span>
-      <span className={compact ? "hidden sm:inline" : undefined}>ClassPulse</span>
     </Link>
   );
 }
@@ -76,10 +88,10 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
               aria-current={active ? "page" : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                active ? "bg-sidebar-accent text-white" : "text-sidebar-muted hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+                active ? "bg-sidebar-accent text-white shadow-[inset_3px_0_0_var(--sidebar-primary)]" : "text-sidebar-muted hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
               )}
             >
-              <Icon className={cn("size-4 shrink-0", active && "text-brand")} aria-hidden />
+              <Icon className={cn("size-4 shrink-0", active && "text-sidebar-primary")} aria-hidden />
               {label}
             </Link>
           </li>
@@ -130,6 +142,20 @@ function DemoBanner() {
   );
 }
 
+function InstallButton() {
+  const app = useInstallApp();
+  if (!app.canPrompt) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => void app.install()}
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-primary hover:bg-sidebar-accent/60"
+    >
+      <MonitorDown className="size-4" aria-hidden /> Install ClassPulse app
+    </button>
+  );
+}
+
 function SignOut() {
   const { adapter } = useData();
   if (adapter.mode !== "supabase") return null;
@@ -138,6 +164,7 @@ function SignOut() {
       type="button"
       onClick={async () => {
         await getBrowserSupabase().auth.signOut();
+        navigator.serviceWorker?.controller?.postMessage("clear-caches");
         window.location.assign("/login");
       }}
       className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-muted hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
@@ -161,13 +188,14 @@ function Shell({ children }: { children: React.ReactNode }) {
       <DemoBanner />
       <div className="flex flex-1">
         {/* Desktop sidebar */}
-        <aside className="no-print sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-6 bg-sidebar p-4 text-sidebar-foreground lg:flex" aria-label="Main navigation">
-          <Brand className="px-2 pt-1 text-white" />
+        <aside className="no-print sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-6 bg-gradient-to-b from-sidebar-2 to-sidebar to-40% p-4 text-sidebar-foreground lg:flex" aria-label="Main navigation">
+          <Brand className="px-1 pt-1" onDark />
           <nav className="flex-1 overflow-y-auto">
             <NavLinks />
           </nav>
           <div className="grid gap-1 border-t border-white/10 pt-3">
             <p className="truncate px-3 text-xs text-sidebar-muted">{profile.display_name || profile.email || (adapter.mode === "demo" ? "Demo teacher" : "")}</p>
+            <InstallButton />
             <SignOut />
           </div>
         </aside>
@@ -199,18 +227,18 @@ function Shell({ children }: { children: React.ReactNode }) {
           { href: "/dashboard", label: "Home", icon: LayoutDashboard },
           { href: "/classroom", label: "Classroom", icon: Presentation },
         ].map(({ href, label, icon: Icon }) => (
-          <Link key={href} href={href} aria-current={isActive(path, href) ? "page" : undefined} className={cn("flex flex-col items-center gap-0.5 py-2 text-[11px]", isActive(path, href) ? "text-brand" : "text-muted-foreground")}>
+          <Link key={href} href={href} aria-current={isActive(path, href) ? "page" : undefined} className={cn("flex flex-col items-center gap-0.5 py-2 text-[11px]", isActive(path, href) ? "text-brand-ink" : "text-muted-foreground")}>
             <Icon className="size-5" aria-hidden />
             {label}
           </Link>
         ))}
-        <button type="button" onClick={() => quickLog()} className="flex flex-col items-center gap-0.5 py-1.5 text-[11px] font-medium text-brand">
+        <button type="button" onClick={() => quickLog()} className="flex flex-col items-center gap-0.5 py-1.5 text-[11px] font-medium text-brand-ink">
           <span className="grid size-8 place-items-center rounded-full bg-brand text-brand-foreground">
             <Plus className="size-5" aria-hidden />
           </span>
           Quick log
         </button>
-        <Link href="/students" aria-current={isActive(path, "/students") ? "page" : undefined} className={cn("flex flex-col items-center gap-0.5 py-2 text-[11px]", isActive(path, "/students") ? "text-brand" : "text-muted-foreground")}>
+        <Link href="/students" aria-current={isActive(path, "/students") ? "page" : undefined} className={cn("flex flex-col items-center gap-0.5 py-2 text-[11px]", isActive(path, "/students") ? "text-brand-ink" : "text-muted-foreground")}>
           <Users className="size-5" aria-hidden />
           Students
         </Link>
@@ -225,6 +253,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           <nav aria-label="Main navigation">
             <NavLinks onNavigate={() => setMenuOpen(false)} />
           </nav>
+          <InstallButton />
           <SignOut />
         </DialogContent>
       </Dialog>

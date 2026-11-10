@@ -235,7 +235,7 @@ function ClassHistory({ classId }: { classId: string }) {
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" unit="%" />
                 <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8 }} formatter={(v) => [`${v}%`, "Attendance"]} />
-                <Area type="monotone" dataKey="rate" stroke="#0d9488" fill="#0d9488" fillOpacity={0.15} connectNulls={false} />
+                <Area type="monotone" dataKey="rate" stroke="#00a3b0" fill="#00a3b0" fillOpacity={0.15} connectNulls={false} />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
