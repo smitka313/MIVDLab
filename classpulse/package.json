@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:db": "vitest run --config vitest.db.config.mts",
+    "test:e2e": "playwright test --trace off",
+    "test:all": "npm run typecheck && npm run test && npm run test:db && npm run test:e2e"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.5",
@@ -46,7 +51,6 @@
     "pg": "^8.23.1",
     "tailwindcss": "4.3.3",
     "typescript": "^5",
-    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^5.1.0"
   }
 }

@@ -32,7 +32,10 @@ export function parseCSV(text: string): ParsedCSV {
   if (!text.trim()) return { headers: [], rows: [], errors: ["The file is empty."] };
   if (text.length > MAX_IMPORT_BYTES) return { headers: [], rows: [], errors: ["The file is larger than 2 MB. Split it into smaller files."] };
   if (/\u0000/.test(text)) return { headers: [], rows: [], errors: ["This doesn't look like a text CSV file."] };
-  const res = Papa.parse<Record<string, string>>(text.replace(/^﻿/, ""), {
+  const clean = text.replace(/^\uFEFF/, "");
+  // Papaparse silently renames repeated headers (Name, Name_1), so check the raw header row.
+  const rawHeader = (Papa.parse<string[]>(clean, { preview: 1 }).data[0] ?? []).map((h) => String(h).trim().toLowerCase()).filter(Boolean);
+  const res = Papa.parse<Record<string, string>>(clean, {
     header: true,
     skipEmptyLines: "greedy",
     transformHeader: (h) => h.trim(),
@@ -40,7 +43,7 @@ export function parseCSV(text: string): ParsedCSV {
   });
   const headers = (res.meta.fields ?? []).filter((h) => h !== "");
   if (!headers.length) errors.push("No header row found. The first row should name the columns (e.g. First Name, Last Name).");
-  if (new Set(headers.map((h) => h.toLowerCase())).size !== headers.length) errors.push("Some column names are repeated. Each column needs a unique name.");
+  if (new Set(rawHeader).size !== rawHeader.length) errors.push("Some column names are repeated. Each column needs a unique name.");
   for (const e of res.errors.slice(0, 5)) {
     if (e.code === "TooManyFields" || e.code === "TooFewFields") errors.push(`Row ${(e.row ?? 0) + 2}: ${e.message}.`);
     else if (e.code !== "UndetectableDelimiter") errors.push(e.message);

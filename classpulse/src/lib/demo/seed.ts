@@ -157,6 +157,21 @@ export function generateDemoData(opts: { teacherId: string; today?: Date; seed?:
   };
   const fixture = (layoutId: string, kind: string, x: number, y: number, w: number, h: number, label: string | null = null) =>
     add("seats", { layout_id: layoutId, kind, x, y, w, h, label, student_id: null });
+  /** Candidate seat positions that are inside the room, unique, and not on furniture. */
+  const freeCells = (layoutId: string, positions: { x: number; y: number }[]) => {
+    const occupied = new Set<string>();
+    for (const s of data.seats.filter((x) => x.layout_id === layoutId)) {
+      for (let dx = 0; dx < (s.w as number); dx++) for (let dy = 0; dy < (s.h as number); dy++) occupied.add(`${(s.x as number) + dx},${(s.y as number) + dy}`);
+    }
+    const out: { x: number; y: number }[] = [];
+    for (const p of positions) {
+      const k = `${p.x},${p.y}`;
+      if (p.x < 0 || p.y < 0 || p.x >= 12 || p.y >= 10 || occupied.has(k)) continue;
+      occupied.add(k);
+      out.push(p);
+    }
+    return out;
+  };
 
   for (const [i, cls] of classes.entries()) {
     const roster = rosters.get(cls.id)!;
@@ -180,14 +195,8 @@ export function generateDemoData(opts: { teacherId: string; today?: Date; seed?:
         pos.push({ x: px, y: py }, { x: px + 1, y: py }, { x: px - 1 < 0 ? px + 2 : px - 1, y: py + 1 }, { x: px + 2, y: py + 1 });
       }
     }
-    // de-duplicate positions that collide with fixtures
-    const occupied = new Set(data.seats.filter((s) => s.layout_id === layout.id).flatMap((s) => {
-      const cells: string[] = [];
-      for (let dx = 0; dx < (s.w as number); dx++) for (let dy = 0; dy < (s.h as number); dy++) cells.push(`${(s.x as number) + dx},${(s.y as number) + dy}`);
-      return cells;
-    }));
-    const free = pos.filter((p) => !occupied.has(`${p.x},${p.y}`) && p.x < 12 && p.y < 10).filter((p, idx, arr) => arr.findIndex((q) => q.x === p.x && q.y === p.y) === idx);
-    seatStudents(layout.id, free.slice(0, Math.max(roster.length, Math.min(free.length, roster.length + 2))), roster);
+    const free = freeCells(layout.id, pos);
+    seatStudents(layout.id, free.slice(0, roster.length + 2), roster);
     if (i === 0) {
       // A second layout for lab days.
       const lab = add("seating_layouts", { class_id: cls.id, name: "Lab day", arrangement: "lab", cols: 12, rows: 10 });
@@ -198,7 +207,7 @@ export function generateDemoData(opts: { teacherId: string; today?: Date; seed?:
         fixture(lab.id, "lab_bench", px, py, 2, 1, `Station ${lpos.length / 4 + 1}`);
         lpos.push({ x: px - 1 < 0 ? 0 : px - 1, y: py + 1 }, { x: px, y: py + 1 }, { x: px + 1, y: py + 1 }, { x: px + 2, y: py + 1 });
       }
-      seatStudents(lab.id, lpos.filter((p, idx, arr) => p.y < 10 && arr.findIndex((q) => q.x === p.x && q.y === p.y) === idx).slice(0, roster.length), roster);
+      seatStudents(lab.id, freeCells(lab.id, lpos).slice(0, roster.length), roster);
     }
   }
 
@@ -242,7 +251,7 @@ export function generateDemoData(opts: { teacherId: string; today?: Date; seed?:
           note: kind === "redirection" && chance(0.3) ? "Responded well to a quiet reminder." : null,
           activity: chance(0.85) ? activity : null,
           intervention_used: kind === "redirection" && chance(0.4) ? pick(["Proximity", "Private redirection", "Clear written instructions"]) : null,
-          follow_up_required: kind === "redirection" && chance(0.08),
+          follow_up_required: kind === "redirection" && chance(0.025),
           group_id: null,
         });
       }

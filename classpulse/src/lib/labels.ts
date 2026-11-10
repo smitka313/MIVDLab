@@ -141,3 +141,5 @@ export const COUNTS_AS_COLOR: Record<AttendanceCountsAs, string> = {
   tardy: "amber",
   excused: "blue",
 };
+
+export const STATUS_COLOR: Record<InterventionStatus, string> = { planned: "slate", active: "teal", under_review: "amber", completed: "emerald", discontinued: "rose" };
